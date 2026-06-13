@@ -2292,9 +2292,9 @@ function DashboardPage({ credits }) {
   ];
 
   const REDEEM_OPTIONS = [
-    { label: '₹50 Amazon Coupon', cost: 100, icon: '🛒' },
-    { label: 'Prime Month Discount', cost: 200, icon: '⭐' },
-    { label: 'Plant a Tree 🌳', cost: 150, icon: '🌳' },
+    { label: '₹50 Amazon Coupon', cost: 100, icon: '🛒', event: 'redeem_amazon_coupon_100' },
+    { label: 'Prime Month Discount', cost: 200, icon: '⭐', event: 'redeem_prime_discount' },
+    { label: 'Plant a Tree 🌳', cost: 150, icon: '🌳', event: 'redeem_carbon_offset' },
   ];
 
   return (
@@ -2350,7 +2350,17 @@ function DashboardPage({ credits }) {
                 <h4 style={{ marginBottom: 8 }}>{opt.label}</h4>
                 <div className="redeem-cost">{opt.cost} Credits</div>
                 <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', fontSize: 13 }}
-                        disabled={stats.green_credits < opt.cost}>
+                        disabled={stats.green_credits < opt.cost}
+                        onClick={async () => {
+                          if (stats.green_credits < opt.cost) return;
+                          const r = await api(`/credits/redeem/${opt.event || opt.label.toLowerCase().replace(/\s/g,'_')}`, { method: 'POST' });
+                          if (r && r.coupon_code) {
+                            setStats(prev => ({ ...prev, green_credits: prev.green_credits - opt.cost }));
+                            alert(`🎁 Coupon Generated!\n\nCode: ${r.coupon_code}\nValue: ₹${(opt.cost * 0.5).toFixed(0)}`);
+                          } else if (r && r.error) {
+                            alert(r.error);
+                          }
+                        }}>
                   {stats.green_credits >= opt.cost ? 'Redeem' : `Need ${opt.cost - stats.green_credits} more`}
                 </button>
               </div>
