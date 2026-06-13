@@ -1702,8 +1702,8 @@ function P2PPage({ addToast, updateCredits }) {
         <p className="section-sub">Connect directly with real owners. AI matches you with the best sellers in your area.</p>
       </div>
 
-      {/* Notifications Banner */}
-      {notifications.length > 0 && (
+      {/* Notifications Banner — hide when chat is open or result is showing */}
+      {notifications.length > 0 && !chatOpen && !result && (
         <div className="mb-6">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <h3 style={{ fontSize: 16 }}>🔔 Notifications ({notifications.length})</h3>
@@ -1725,6 +1725,8 @@ function P2PPage({ addToast, updateCredits }) {
                           onClick={() => {
                             setResult({ request_id: n.request_id || 'req_demo', potential_matches: 1, top_preview: [], message: 'You can now opt in as seller!' });
                             setNotifications(prev => prev.filter((_, idx) => idx !== i));
+                            // Mark as read on server
+                            api('/ws/notifications/read', { method: 'POST' });
                           }}>
                     View & Sell
                   </button>
@@ -2010,8 +2012,11 @@ function ChatPanel({ listingId, onClose }) {
   const formatTime = (ts) => {
     if (!ts) return '';
     try {
-      const d = new Date(ts);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      // Handle Python datetime format: "2025-06-13 08:02:33.123456"
+      const normalized = ts.replace(' ', 'T').replace(/\.\d+$/, '') + 'Z';
+      const d = new Date(normalized);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
     } catch { return ''; }
   };
 
