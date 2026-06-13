@@ -2124,7 +2124,7 @@ function CreditsPage({ credits, addToast, updateCredits }) {
     const r = await api(`/credits/award/${event}`, { method: 'POST' });
     const earned = r?.awarded || points;
     updateCredits(earned);
-    addToast({ title: `🌿 +${earned} Green Credits!`, body: `Earned for: ${event.replace(/_/g,' ')}`, type: 'green' });
+    // Don't addToast here — updateCredits already shows a toast
   };
 
   const redeem = async (event, cost) => {
@@ -2205,16 +2205,10 @@ function CreditsPage({ credits, addToast, updateCredits }) {
                   <span style={{ fontSize: 24 }}>{r.icon}</span>
                   <div>
                     <div className="credit-rule-label">{r.label}</div>
-                    <div className="credit-rule-sub">+{r.points} Green Credits</div>
+                    <div className="credit-rule-sub">Automatically awarded when action is completed</div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div className="credit-points">+{r.points}</div>
-                  <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }}
-                          onClick={() => earn(r.event, r.points)}>
-                    Earn
-                  </button>
-                </div>
+                <div className="credit-points">+{r.points}</div>
               </div>
             ))}
           </div>
