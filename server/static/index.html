@@ -641,6 +641,17 @@
 
     /* Input file hidden */
     input[type="file"] { display: none; }
+
+    /* P2P Chat Panel */
+    .chat-panel { position: fixed; bottom: 20px; right: 20px; width: 380px; max-height: 520px; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: 0 12px 40px rgba(0,0,0,0.6); display: flex; flex-direction: column; z-index: 1000; }
+    .chat-header { padding: 14px 18px; border-bottom: 1px solid var(--c-border); display: flex; justify-content: space-between; align-items: center; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; max-height: 360px; }
+    .chat-msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; }
+    .chat-msg-self { align-self: flex-end; background: rgba(34,197,94,0.2); border-bottom-right-radius: 4px; }
+    .chat-msg-other { align-self: flex-start; background: var(--c-surface2); border-bottom-left-radius: 4px; }
+    .chat-msg-name { font-size: 11px; font-weight: 700; color: var(--c-text-muted); margin-bottom: 2px; }
+    .chat-msg-time { font-size: 10px; color: var(--c-text-dim); margin-top: 4px; }
+    .chat-input { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--c-border); }
   </style>
 </head>
 <body>
@@ -652,8 +663,20 @@ const { useState, useEffect, useCallback, useRef } = React;
 // ============================================================
 // CONFIG
 // ============================================================
-const API_BASE = '';
-const AUTH_HEADER = { Authorization: 'Bearer demo-token', 'Content-Type': 'application/json' };
+const API_BASE = '/api';
+let CURRENT_USER = 'demo-token';
+let AUTH_HEADER = { Authorization: `Bearer ${CURRENT_USER}`, 'Content-Type': 'application/json' };
+
+function switchUser(token) {
+  CURRENT_USER = token;
+  AUTH_HEADER = { Authorization: `Bearer ${CURRENT_USER}`, 'Content-Type': 'application/json' };
+}
+
+const USERS_LIST = [
+  { token: 'demo-token', name: 'Alex Kumar (Buyer)', id: 'demo_user' },
+  { token: 'seller-token-1', name: 'Priya Sharma (Seller)', id: 'seller_01' },
+  { token: 'seller-token-2', name: 'Rahul Singh (Seller)', id: 'seller_02' },
+];
 
 // ============================================================
 // API SERVICE
@@ -794,7 +817,7 @@ function ToastSystem({ toasts, dismiss }) {
 // ============================================================
 // NAVIGATION
 // ============================================================
-function Nav({ page, setPage, credits }) {
+function Nav({ page, setPage, credits, currentUser, onSwitchUser }) {
   const tabs = [
     { id: 'home',      label: '🏠 Home' },
     { id: 'cart',      label: '🛒 Cart' },
@@ -817,6 +840,16 @@ function Nav({ page, setPage, credits }) {
             </button>
           ))}
         </div>
+        <select
+          className="input"
+          style={{ width: 'auto', padding: '6px 12px', fontSize: 12, marginRight: 8, background: 'var(--c-surface2)' }}
+          value={currentUser}
+          onChange={(e) => onSwitchUser(e.target.value)}
+        >
+          {USERS_LIST.map(u => (
+            <option key={u.token} value={u.token}>👤 {u.name}</option>
+          ))}
+        </select>
         <div className="nav-credits">
           <span>🌿</span>
           <span style={{ color: 'var(--c-text)' }}>{credits}</span>
@@ -845,7 +878,7 @@ function HomePage({ setPage }) {
     <div>
       {/* HERO */}
       <section className="hero">
-        <div className="hero-badge">🏆 Amazon Hackathon 2024 · Sustainable Commerce</div>
+        <div className="hero-badge">🏆 Amazon Hackathon 2026 · Sustainable Commerce</div>
         <h1>Turn Returns into <span className="accent">Assets</span></h1>
         <p className="hero-sub">
           ReLife AI gives every returned or idle product a second life using 7 intelligent AI-powered systems built directly into the shopping experience.
@@ -1328,7 +1361,9 @@ function VisionPage({ addToast }) {
 // ============================================================
 function LifecyclePage({ addToast }) {
   const [form, setForm] = useState({
-    product_id: 'DEMO001', category: 'electronics', return_reason: 'defective',
+    product_id: 'PRD-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
+    product_name: 'Samsung Galaxy S24',
+    category: 'electronics', return_reason: 'defective',
     product_age_days: 180, return_frequency: 1, repair_cost_estimate: 2000,
     seller_reputation: 4.2, accessories_present: true, days_since_purchase: 30,
   });
@@ -1340,7 +1375,15 @@ function LifecyclePage({ addToast }) {
 
   const classify = async () => {
     setLoading(true);
-    const res = await api('/lifecycle/classify', { method: 'POST', body: JSON.stringify(form) });
+    const payload = {
+      ...form,
+      product_age_days: parseInt(form.product_age_days) || 0,
+      return_frequency: parseInt(form.return_frequency) || 0,
+      repair_cost_estimate: parseFloat(form.repair_cost_estimate) || 0,
+      seller_reputation: parseFloat(form.seller_reputation) || 4.0,
+      days_since_purchase: parseInt(form.days_since_purchase) || 0,
+    };
+    const res = await api('/lifecycle/classify', { method: 'POST', body: JSON.stringify(payload) });
     if (res && res.action) {
       setResult(res);
     } else {
@@ -1373,7 +1416,7 @@ function LifecyclePage({ addToast }) {
         </div>
       ) : (
         <input className="input" type={type} value={form[key]}
-               onChange={e => setForm(p => ({ ...p, [key]: type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value }))} />
+               onChange={e => setForm(p => ({ ...p, [key]: type === 'number' ? e.target.value : e.target.value }))} />
       )}
     </div>
   );
@@ -1391,7 +1434,7 @@ function LifecyclePage({ addToast }) {
           <div className="card-body">
             <h3 style={{ marginBottom: 20, fontSize: 18 }}>Product Details</h3>
             <div className="lifecycle-form">
-              {field('product_id', 'Product ID')}
+              {field('product_name', 'Product Name')}
               {field('category', 'Category', 'text', CATEGORIES)}
               {field('return_reason', 'Return Reason', 'text', REASONS)}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -1597,7 +1640,23 @@ function P2PPage({ addToast, updateCredits }) {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [sellerOptIn, setSellerOptIn] = useState({ listing_price: '', condition: 'good', description: '' });
+  const [sellerImages, setSellerImages] = useState([]);
+  const [sellerPreviews, setSellerPreviews] = useState([]);
   const [optedIn, setOptedIn] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [myRequests, setMyRequests] = useState([]);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatListingId, setChatListingId] = useState(null);
+
+  // Load notifications and requests on mount / user switch
+  useEffect(() => {
+    api('/ws/notifications').then(d => {
+      if (d && d.notifications) setNotifications(d.notifications);
+    });
+    api('/p2p/my-requests').then(d => {
+      if (d && d.requests) setMyRequests(d.requests);
+    });
+  }, []);
 
   const CATEGORIES = ['baby_products', 'electronics', 'sports_gear', 'gaming', 'toys', 'books', 'clothing', 'furniture'];
   const MOCK_SELLERS = [
@@ -1622,9 +1681,28 @@ function P2PPage({ addToast, updateCredits }) {
     if (!result || !sellerOptIn.listing_price) return;
     const res = await api('/p2p/seller/optin', { method: 'POST', body: JSON.stringify({ request_id: result.request_id, ...sellerOptIn, listing_price: parseFloat(sellerOptIn.listing_price) }) });
     setOptedIn(true);
+    const listingId = res?.listing_id || 'listing_' + Date.now();
     const credits = 40;
     updateCredits(credits);
     addToast({ title: '🎉 Listed Successfully!', body: `+${credits} Green Credits earned for P2P sale!`, type: 'green' });
+
+    // Send product images as first chat message if provided
+    if (sellerImages.length > 0) {
+      const imageDataUrls = await Promise.all(sellerImages.map(f => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(f);
+      })));
+      const imgTags = imageDataUrls.map(src => `[img]${src}[/img]`).join('\n');
+      await api('/p2p/chat/send', {
+        method: 'POST',
+        body: JSON.stringify({ listing_id: listingId, message: `📸 Product photos:\n${imgTags}\n\nCondition: ${sellerOptIn.condition}\n${sellerOptIn.description || ''}` })
+      });
+    }
+
+    // Open chat automatically after seller opts in
+    setChatListingId(listingId);
+    setChatOpen(true);
   };
 
   return (
@@ -1633,6 +1711,75 @@ function P2PPage({ addToast, updateCredits }) {
         <h2 className="section-title">🤝 P2P Marketplace</h2>
         <p className="section-sub">Connect directly with real owners. AI matches you with the best sellers in your area.</p>
       </div>
+
+      {/* Notifications Banner — hide when chat is open or result is showing */}
+      {notifications.length > 0 && !chatOpen && !result && (
+        <div className="mb-6">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h3 style={{ fontSize: 16 }}>🔔 Notifications ({notifications.length})</h3>
+            <button className="btn btn-secondary" style={{ padding: '4px 12px', fontSize: 11 }}
+                    onClick={() => { api('/ws/notifications/read', { method: 'POST' }); setNotifications([]); }}>
+              Clear All
+            </button>
+          </div>
+          {notifications.map((n, i) => (
+            <div key={n._id || i} className={`alert ${n.type === 'p2p_seller_found' || n.type === 'p2p_chat_ready' ? 'alert-success' : 'alert-warning'} mb-2`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <p style={{ fontWeight: 700, fontSize: 14 }}>{n.title}</p>
+                <p style={{ fontSize: 13, color: 'var(--c-text-muted)' }}>{n.body}</p>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {/* Seller notification: someone wants to buy */}
+                {n.type === 'p2p_sell_opportunity' && (
+                  <button className="btn btn-primary" style={{ padding: '6px 14px', fontSize: 12 }}
+                          onClick={() => {
+                            setResult({ request_id: n.request_id || 'req_demo', potential_matches: 1, top_preview: [], message: 'You can now opt in as seller!' });
+                            setNotifications(prev => prev.filter((_, idx) => idx !== i));
+                            // Mark as read on server
+                            api('/ws/notifications/read', { method: 'POST' });
+                          }}>
+                    View & Sell
+                  </button>
+                )}
+                {/* Chat notification: seller matched or chat ready */}
+                {(n.type === 'p2p_seller_found' || n.type === 'p2p_chat_ready') && n.listing_id && (
+                  <button className="btn btn-primary" style={{ padding: '6px 14px', fontSize: 12 }}
+                          onClick={() => { setChatListingId(n.listing_id); setChatOpen(true); setNotifications(prev => prev.filter((_, idx) => idx !== i)); }}>
+                    💬 Chat
+                  </button>
+                )}
+                {/* Dismiss notification */}
+                <button className="btn btn-danger" style={{ padding: '4px 10px', fontSize: 11 }}
+                        onClick={() => setNotifications(prev => prev.filter((_, idx) => idx !== i))}>
+                  ✕
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* My Active Requests (as buyer) */}
+      {myRequests.length > 0 && !result && (
+        <div className="mb-6">
+          <h3 style={{ fontSize: 16, marginBottom: 12 }}>📋 My Active Requests</h3>
+          {myRequests.slice(0, 3).map((r, i) => (
+            <div key={i} className="alert alert-info mb-2" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <p style={{ fontWeight: 600, fontSize: 13 }}>
+                {r.category?.replace(/_/g, ' ')} · Budget: ₹{r.max_budget?.toLocaleString()} · Status: {r.status}
+              </p>
+              <button className="btn btn-danger" style={{ padding: '4px 10px', fontSize: 11 }}
+                      onClick={async () => {
+                        await api(`/p2p/request/${r.request_id || r._id}`, { method: 'DELETE' });
+                        setMyRequests(prev => prev.filter((_, idx) => idx !== i));
+                        addToast({ title: '🗑 Request Deleted', body: 'P2P request removed.', type: 'amber' });
+                      }}>
+                ✕ Delete
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="grid-2" style={{ gap: 24, alignItems: 'start' }}>
         {/* Buyer Request */}
@@ -1676,6 +1823,10 @@ function P2PPage({ addToast, updateCredits }) {
                 <div className="alert alert-success">
                   <p style={{ fontWeight: 700, marginBottom: 4 }}>✅ Listing Created!</p>
                   <p style={{ fontSize: 13, color: 'var(--c-text-muted)' }}>The buyer has been notified. You earned +40 Green Credits!</p>
+                  <button className="btn btn-secondary" style={{ marginTop: 10, padding: '6px 14px', fontSize: 12 }}
+                          onClick={() => setChatOpen(true)}>
+                    💬 Open Chat
+                  </button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1694,6 +1845,26 @@ function P2PPage({ addToast, updateCredits }) {
                     <label className="label">Description</label>
                     <textarea className="input" style={{ height: 72, resize: 'vertical' }} value={sellerOptIn.description} placeholder="Briefly describe the item condition..."
                               onChange={e => setSellerOptIn(p => ({ ...p, description: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="label">Product Photos (optional)</label>
+                    <div className="dropzone" style={{ padding: 16 }}
+                         onClick={() => document.getElementById('seller-img-input').click()}>
+                      <input id="seller-img-input" type="file" accept="image/*" multiple
+                             onChange={e => {
+                               const files = Array.from(e.target.files || []).slice(0, 4);
+                               setSellerImages(files);
+                               setSellerPreviews(files.map(f => URL.createObjectURL(f)));
+                             }} />
+                      <p style={{ fontSize: 13, color: 'var(--c-text-muted)' }}>📸 Click to add up to 4 photos</p>
+                    </div>
+                    {sellerPreviews.length > 0 && (
+                      <div className="preview-grid" style={{ marginTop: 8 }}>
+                        {sellerPreviews.map((src, i) => (
+                          <img key={i} src={src} alt="" className="preview-img" />
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <button className="btn btn-primary" style={{ justifyContent: 'center' }} onClick={optIn}
                           disabled={!sellerOptIn.listing_price}>
@@ -1760,6 +1931,176 @@ function P2PPage({ addToast, updateCredits }) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Chat Panel */}
+      {chatOpen && chatListingId && (
+        <ChatPanel listingId={chatListingId} onClose={() => {
+          setChatOpen(false);
+          setChatListingId(null);
+          // Reload notifications and requests after closing
+          api('/ws/notifications').then(d => { if (d && d.notifications) setNotifications(d.notifications); });
+          api('/p2p/my-requests').then(d => { if (d && d.requests) setMyRequests(d.requests); });
+          setResult(null);
+          setOptedIn(false);
+        }} />
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// P2P CHAT PANEL COMPONENT
+// ============================================================
+function ChatPanel({ listingId, onClose }) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  useEffect(() => {
+    // Load chat history on mount
+    api(`/p2p/chat/${listingId}`).then(d => {
+      if (d && d.messages) setMessages(d.messages);
+    });
+
+    // Poll for new messages every 3 seconds — only update if count changed
+    let lastCount = 0;
+    const interval = setInterval(() => {
+      api(`/p2p/chat/${listingId}`).then(d => {
+        if (d && d.messages && d.messages.length !== lastCount) {
+          lastCount = d.messages.length;
+          setMessages(d.messages);
+        }
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [listingId]);
+
+  const sendMessage = () => {
+    if (!input.trim()) return;
+    const msgText = input.trim();
+    setInput('');
+    // Optimistic: show message instantly
+    const optimistic = { sender_id: USERS_LIST.find(u => u.token === CURRENT_USER)?.id, sender_name: 'You', message: msgText, timestamp: new Date().toISOString() };
+    setMessages(prev => [...prev, optimistic]);
+    // Send to server
+    api('/p2p/chat/send', {
+      method: 'POST',
+      body: JSON.stringify({ listing_id: listingId, message: msgText })
+    });
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const currentUserId = USERS_LIST.find(u => u.token === CURRENT_USER)?.id || CURRENT_USER;
+
+  const renderChatMessage = (text) => {
+    if (!text) return null;
+    // Split by [img]...[/img] tags and render images inline
+    const parts = text.split(/\[img\](.*?)\[\/img\]/g);
+    return parts.map((part, idx) => {
+      if (idx % 2 === 1) {
+        // This is an image data URL
+        return <img key={idx} src={part} alt="Product" style={{ maxWidth: '100%', borderRadius: 8, marginTop: 6, marginBottom: 6 }} />;
+      }
+      // Regular text — preserve newlines
+      return part.split('\n').map((line, li) => <span key={`${idx}-${li}`}>{line}{li < part.split('\n').length - 1 && <br/>}</span>);
+    });
+  };
+
+  const formatTime = (ts) => {
+    if (!ts) return '';
+    try {
+      // Handle Python datetime format: "2025-06-13 08:02:33.123456"
+      const normalized = ts.replace(' ', 'T').replace(/\.\d+$/, '') + 'Z';
+      const d = new Date(normalized);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    } catch { return ''; }
+  };
+
+  return (
+    <div className="chat-panel">
+      <div className="chat-header">
+        <h4 style={{ fontSize: 15, fontWeight: 700 }}>💬 P2P Chat</h4>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button onClick={async () => {
+            if (confirm('End chat and delete the entire P2P deal?')) {
+              await api(`/p2p/chat/${listingId}`, { method: 'DELETE' });
+              onClose();
+            }
+          }} style={{ background: 'none', border: 'none', color: 'var(--c-red)', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}>🗑 End Deal</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--c-text-muted)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+        </div>
+      </div>
+      <div className="chat-messages">
+        {messages.length === 0 && (
+          <div style={{ textAlign: 'center', color: 'var(--c-text-dim)', fontSize: 13, padding: '40px 0' }}>
+            No messages yet. Say hi! 👋
+          </div>
+        )}
+        {messages.map((m, i) => {
+          const isSelf = m.sender_id === currentUserId;
+          return (
+            <div key={i} className={`chat-msg ${isSelf ? 'chat-msg-self' : 'chat-msg-other'}`}>
+              {!isSelf && <div className="chat-msg-name">{m.sender_name}</div>}
+              <div>{renderChatMessage(m.message)}</div>
+              <div className="chat-msg-time">{formatTime(m.timestamp)}</div>
+            </div>
+          );
+        })}
+        <div ref={messagesEndRef} />
+      </div>
+      <div className="chat-input">
+        <input id="chat-img-input" type="file" accept="image/*"
+               onChange={e => {
+                 const file = e.target.files?.[0];
+                 if (!file) return;
+                 const reader = new FileReader();
+                 reader.onload = () => {
+                   const imgMsg = `[img]${reader.result}[/img]`;
+                   api('/p2p/chat/send', {
+                     method: 'POST',
+                     body: JSON.stringify({ listing_id: listingId, message: imgMsg })
+                   }).then(res => {
+                     if (res && res.chat_message) setMessages(prev => [...prev, res.chat_message]);
+                   });
+                 };
+                 reader.readAsDataURL(file);
+                 e.target.value = '';
+               }} />
+        <button style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', padding: '4px 8px' }}
+                onClick={() => document.getElementById('chat-img-input').click()}
+                title="Send image">
+          📷
+        </button>
+        <input
+          className="input"
+          style={{ flex: 1 }}
+          placeholder="Type a message..."
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+        <button className="btn btn-primary" style={{ padding: '8px 16px' }} onClick={sendMessage}>
+          Send
+        </button>
       </div>
     </div>
   );
@@ -2034,9 +2375,20 @@ function App() {
   const [page, setPage] = useState('home');
   const [credits, setCredits] = useState(350);
   const [toasts, setToasts] = useState([]);
+  const [currentUser, setCurrentUser] = useState('demo-token');
+
+  const handleSwitchUser = useCallback((token) => {
+    switchUser(token);
+    setCurrentUser(token);
+    setPage('home');
+    // Reload credits for new user
+    api('/credits/balance').then(d => {
+      if (d && d.balance !== undefined) setCredits(d.balance);
+    });
+  }, []);
 
   const addToast = useCallback((t) => {
-    const id = Date.now();
+    const id = Date.now() + Math.random();
     setToasts(prev => [...prev, { ...t, id }]);
     setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), 4000);
   }, []);
@@ -2052,6 +2404,13 @@ function App() {
     }
   }, [addToast]);
 
+  // Load credits on mount
+  useEffect(() => {
+    api('/credits/balance').then(d => {
+      if (d && d.balance !== undefined) setCredits(d.balance);
+    });
+  }, []);
+
   const PAGE_COMPONENTS = {
     home:      <HomePage setPage={setPage} />,
     cart:      <CartPage addToast={addToast} />,
@@ -2065,14 +2424,14 @@ function App() {
 
   return (
     <div>
-      <Nav page={page} setPage={setPage} credits={credits} />
+      <Nav page={page} setPage={setPage} credits={credits} currentUser={currentUser} onSwitchUser={handleSwitchUser} />
       <ToastSystem toasts={toasts} dismiss={dismissToast} />
       <main style={{ minHeight: 'calc(100vh - 64px)' }}>
         {PAGE_COMPONENTS[page]}
       </main>
       <footer style={{ borderTop: '1px solid var(--c-border)', padding: '24px', textAlign: 'center', color: 'var(--c-text-dim)', fontSize: 13, marginTop: 40 }}>
         <p>♻️ ReLife AI · Built for the <strong style={{ color: 'var(--c-orange)' }}>Amazon Sustainable Commerce Hackathon</strong></p>
-        <p style={{ marginTop: 6 }}>React + FastAPI + XGBoost + AWS Services · 100% Free Tier Hosted</p>
+        <p style={{ marginTop: 6 }}>React + FastAPI + XGBoost + AWS Services</p>
       </footer>
     </div>
   );

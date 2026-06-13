@@ -175,8 +175,76 @@ def generate_orders(users, n=1000):
 # --------------------------------------------------------------------------- #
 def generate_refurbished(users, n=50):
     products = []
-    grades = ["A", "A", "A", "B", "B", "C"]  # bias toward good condition
-    for i in range(n):
+    grades = ["A", "A", "A", "B", "B", "C"]
+
+    # Curated products with real-looking names per category
+    CURATED_PRODUCTS = [
+        # Electronics
+        {"name": "MacBook Air M2 (Refurbished)", "category": "electronics", "price": 89000, "image": "https://picsum.photos/seed/macbook/400/300"},
+        {"name": "iPhone 15 Pro 128GB", "category": "electronics", "price": 95000, "image": "https://picsum.photos/seed/iphone15/400/300"},
+        {"name": "Sony WH-1000XM5 Headphones", "category": "electronics", "price": 28000, "image": "https://picsum.photos/seed/sonyxm5/400/300"},
+        {"name": "Samsung Galaxy Tab S9", "category": "electronics", "price": 55000, "image": "https://picsum.photos/seed/galaxytab/400/300"},
+        {"name": "Bose QuietComfort Ultra", "category": "electronics", "price": 32000, "image": "https://picsum.photos/seed/boseqc/400/300"},
+        {"name": "Kindle Paperwhite 11th Gen", "category": "electronics", "price": 14000, "image": "https://picsum.photos/seed/kindle11/400/300"},
+        {"name": "JBL Charge 5 Speaker", "category": "electronics", "price": 12000, "image": "https://picsum.photos/seed/jblcharge/400/300"},
+        {"name": "Dell XPS 13 Laptop", "category": "electronics", "price": 78000, "image": "https://picsum.photos/seed/dellxps/400/300"},
+        # Clothing
+        {"name": "Nike Air Jordan 1 Retro", "category": "clothing", "price": 14000, "image": "https://picsum.photos/seed/jordan1/400/300"},
+        {"name": "Levi's 501 Original Jeans", "category": "clothing", "price": 4500, "image": "https://picsum.photos/seed/levis501/400/300"},
+        {"name": "Adidas Ultraboost 23", "category": "clothing", "price": 12000, "image": "https://picsum.photos/seed/ultraboost/400/300"},
+        {"name": "North Face Puffer Jacket", "category": "clothing", "price": 18000, "image": "https://picsum.photos/seed/northface/400/300"},
+        {"name": "Ray-Ban Aviator Sunglasses", "category": "clothing", "price": 8000, "image": "https://picsum.photos/seed/rayban/400/300"},
+        # Baby Products
+        {"name": "Maxi-Cosi Baby Stroller", "category": "baby_products", "price": 25000, "image": "https://picsum.photos/seed/stroller/400/300"},
+        {"name": "Chicco Baby Car Seat", "category": "baby_products", "price": 18000, "image": "https://picsum.photos/seed/carseat/400/300"},
+        {"name": "Fisher-Price Activity Gym", "category": "baby_products", "price": 4500, "image": "https://picsum.photos/seed/babygym/400/300"},
+        {"name": "Philips Avent Bottle Set", "category": "baby_products", "price": 3200, "image": "https://picsum.photos/seed/avent/400/300"},
+        # Furniture
+        {"name": "IKEA MARKUS Office Chair", "category": "furniture", "price": 15000, "image": "https://picsum.photos/seed/markus/400/300"},
+        {"name": "Standing Desk (Motorized)", "category": "furniture", "price": 28000, "image": "https://picsum.photos/seed/standdesk/400/300"},
+        {"name": "Wakefit Orthopaedic Mattress", "category": "furniture", "price": 12000, "image": "https://picsum.photos/seed/mattress/400/300"},
+        {"name": "Godrej Bookshelf (Walnut)", "category": "furniture", "price": 8000, "image": "https://picsum.photos/seed/bookshelf/400/300"},
+        # Sports
+        {"name": "Peloton-Style Spin Bike", "category": "sports", "price": 35000, "image": "https://picsum.photos/seed/spinbike/400/300"},
+        {"name": "Yonex Badminton Racket Set", "category": "sports", "price": 5500, "image": "https://picsum.photos/seed/yonex/400/300"},
+        {"name": "Decathlon Treadmill", "category": "sports", "price": 28000, "image": "https://picsum.photos/seed/treadmill/400/300"},
+        {"name": "Fitbit Charge 6", "category": "sports", "price": 11000, "image": "https://picsum.photos/seed/fitbit6/400/300"},
+        # Gaming
+        {"name": "PS5 Digital Edition", "category": "gaming", "price": 40000, "image": "https://picsum.photos/seed/ps5/400/300"},
+        {"name": "Nintendo Switch OLED", "category": "gaming", "price": 28000, "image": "https://picsum.photos/seed/switcholed/400/300"},
+        {"name": "Xbox Elite Controller", "category": "gaming", "price": 12000, "image": "https://picsum.photos/seed/xboxelite/400/300"},
+        {"name": "Razer DeathAdder V3 Mouse", "category": "gaming", "price": 5500, "image": "https://picsum.photos/seed/razermouse/400/300"},
+        # Toys
+        {"name": "Lego Technic Porsche 911", "category": "toys", "price": 12000, "image": "https://picsum.photos/seed/legoporsche/400/300"},
+        {"name": "DJI Mini 3 Drone", "category": "toys", "price": 38000, "image": "https://picsum.photos/seed/djimini/400/300"},
+        {"name": "Hot Wheels Ultimate Garage", "category": "toys", "price": 8000, "image": "https://picsum.photos/seed/hotwheels/400/300"},
+        # Books
+        {"name": "Kindle Unlimited Collection (50 Books)", "category": "books", "price": 2500, "image": "https://picsum.photos/seed/kindlebooks/400/300"},
+        {"name": "Complete Harry Potter Box Set", "category": "books", "price": 3500, "image": "https://picsum.photos/seed/harrypotter/400/300"},
+    ]
+
+    # Use curated products first, then generate more
+    for i, cp in enumerate(CURATED_PRODUCTS):
+        grade = rng.choice(grades)
+        discount = {"A": 0.30, "B": 0.45, "C": 0.60}[grade]
+        products.append({
+            "product_id": f"REF{i:03d}",
+            "name": cp["name"],
+            "image": cp["image"],
+            "category": cp["category"],
+            "refurb_price": int(cp["price"] * (1 - discount)),
+            "original_price": cp["price"],
+            "vision_grade": grade,
+            "repair_count": rng.randint(0, 2),
+            "warranty_months_remaining": rng.randint(0, 12),
+            "warranty_months_total": 12,
+            "battery_health_pct": rng.randint(75, 100),
+            "seller_rating": round(rng.uniform(3.8, 5.0), 1),
+            "seller_id": rng.choice(users)["_id"],
+        })
+
+    # Generate remaining random products
+    for i in range(len(CURATED_PRODUCTS), n):
         cat = rng.choice(CATEGORIES)
         original_price = rng.randint(1000, 80000)
         grade = rng.choice(grades)
