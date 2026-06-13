@@ -108,6 +108,15 @@ async def seller_opt_in(optin: SellerOptIn, user=Depends(get_current_user)):
         "user_id": req_doc["buyer_id"], "type": "p2p_seller_found",
         "title": "🎉 A seller matched your request!",
         "body":  f"Price offered: ₹{optin.listing_price:,.0f}. Condition: {optin.condition}.",
+        "listing_id": listing_id,
+        "read": False, "created_at": datetime.utcnow(),
+    })
+    # Also notify seller with listing_id for chat
+    db.notifications.insert_one({
+        "user_id": user["user_id"], "type": "p2p_chat_ready",
+        "title": "💬 Chat started with buyer!",
+        "body": "You can now chat with the buyer about the deal.",
+        "listing_id": listing_id,
         "read": False, "created_at": datetime.utcnow(),
     })
     return {"listing_id": listing_id, "status": "pending_acceptance"}
@@ -199,8 +208,30 @@ async def get_chat_history(listing_id: str, user=Depends(get_current_user)):
 
 @router.delete("/chat/{listing_id}")
 async def delete_chat(listing_id: str, user=Depends(get_current_user)):
-    """Delete all chat messages for a listing."""
+    """Delete chat, listing, associated request, and notifications for both parties."""
+    # Find the listing to get both buyer and seller
+    listing = db.p2p_listings.find_one({"_id": listing_id})
+    
+    # Delete chat messages
     db.p2p_chats.delete_many({"listing_id": listing_id})
+    
+    if listing:
+        request_id = listing.get("request_id", "")
+        buyer_id = listing.get("buyer_id", "")
+        seller_id = listing.get("seller_id", "")
+        
+        # Delete the listing
+        db.p2p_listings.delete_many({"_id": listing_id})
+        
+        # Delete the request
+        if request_id:
+            db.p2p_requests.delete_many({"_id": request_id})
+        
+        # Delete notifications for both users
+        db.notifications.delete_many({"listing_id": listing_id})
+        if request_id:
+            db.notifications.delete_many({"request_id": request_id})
+    
     return {"status": "deleted"}
 
 

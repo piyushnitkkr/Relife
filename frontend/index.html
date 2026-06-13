@@ -1688,26 +1688,37 @@ function P2PPage({ addToast, updateCredits }) {
       {/* Notifications Banner */}
       {notifications.length > 0 && (
         <div className="mb-6">
-          <h3 style={{ fontSize: 16, marginBottom: 12 }}>🔔 Incoming Requests ({notifications.length})</h3>
+          <h3 style={{ fontSize: 16, marginBottom: 12 }}>🔔 Notifications ({notifications.length})</h3>
           {notifications.map((n, i) => (
-            <div key={i} className="alert alert-warning mb-2" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div key={i} className={`alert ${n.type === 'p2p_seller_found' ? 'alert-success' : 'alert-warning'} mb-2`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <p style={{ fontWeight: 700, fontSize: 14 }}>{n.title}</p>
                 <p style={{ fontSize: 13, color: 'var(--c-text-muted)' }}>{n.body}</p>
               </div>
-              <button className="btn btn-primary" style={{ padding: '6px 14px', fontSize: 12 }}
-                      onClick={() => {
-                        setResult({ request_id: n.request_id || 'req_demo', potential_matches: 1, top_preview: [], message: 'You can now opt in as seller!' });
-                        setNotifications(prev => prev.filter((_, idx) => idx !== i));
-                      }}>
-                View & Sell
-              </button>
-              {n.type === 'p2p_seller_found' && (
-                <button className="btn btn-secondary" style={{ padding: '6px 14px', fontSize: 12, marginLeft: 6 }}
-                        onClick={() => { setChatListingId(n.listing_id || 'listing_demo'); setChatOpen(true); }}>
-                  💬 Chat
+              <div style={{ display: 'flex', gap: 6 }}>
+                {/* Seller notification: someone wants to buy */}
+                {n.type === 'p2p_sell_opportunity' && (
+                  <button className="btn btn-primary" style={{ padding: '6px 14px', fontSize: 12 }}
+                          onClick={() => {
+                            setResult({ request_id: n.request_id || 'req_demo', potential_matches: 1, top_preview: [], message: 'You can now opt in as seller!' });
+                            setNotifications(prev => prev.filter((_, idx) => idx !== i));
+                          }}>
+                    View & Sell
+                  </button>
+                )}
+                {/* Buyer notification: seller matched */}
+                {(n.type === 'p2p_seller_found' || n.type === 'p2p_chat_ready') && n.listing_id && (
+                  <button className="btn btn-primary" style={{ padding: '6px 14px', fontSize: 12 }}
+                          onClick={() => { setChatListingId(n.listing_id); setChatOpen(true); setNotifications(prev => prev.filter((_, idx) => idx !== i)); }}>
+                    💬 Chat
+                  </button>
+                )}
+                {/* Delete notification */}
+                <button className="btn btn-danger" style={{ padding: '4px 10px', fontSize: 11 }}
+                        onClick={() => setNotifications(prev => prev.filter((_, idx) => idx !== i))}>
+                  ✕
                 </button>
-              )}
+              </div>
             </div>
           ))}
         </div>
@@ -1945,11 +1956,11 @@ function ChatPanel({ listingId, onClose }) {
         <h4 style={{ fontSize: 15, fontWeight: 700 }}>💬 P2P Chat</h4>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button onClick={async () => {
-            if (confirm('End chat and delete all messages?')) {
+            if (confirm('End chat and delete the entire P2P deal?')) {
               await api(`/p2p/chat/${listingId}`, { method: 'DELETE' });
               onClose();
             }
-          }} style={{ background: 'none', border: 'none', color: 'var(--c-red)', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}>🗑 End Chat</button>
+          }} style={{ background: 'none', border: 'none', color: 'var(--c-red)', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}>🗑 End Deal</button>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--c-text-muted)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
         </div>
       </div>
