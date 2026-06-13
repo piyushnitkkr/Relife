@@ -1688,9 +1688,15 @@ function P2PPage({ addToast, updateCredits }) {
       {/* Notifications Banner */}
       {notifications.length > 0 && (
         <div className="mb-6">
-          <h3 style={{ fontSize: 16, marginBottom: 12 }}>🔔 Notifications ({notifications.length})</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h3 style={{ fontSize: 16 }}>🔔 Notifications ({notifications.length})</h3>
+            <button className="btn btn-secondary" style={{ padding: '4px 12px', fontSize: 11 }}
+                    onClick={() => { api('/ws/notifications/read', { method: 'POST' }); setNotifications([]); }}>
+              Clear All
+            </button>
+          </div>
           {notifications.map((n, i) => (
-            <div key={i} className={`alert ${n.type === 'p2p_seller_found' ? 'alert-success' : 'alert-warning'} mb-2`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div key={n._id || i} className={`alert ${n.type === 'p2p_seller_found' || n.type === 'p2p_chat_ready' ? 'alert-success' : 'alert-warning'} mb-2`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <p style={{ fontWeight: 700, fontSize: 14 }}>{n.title}</p>
                 <p style={{ fontSize: 13, color: 'var(--c-text-muted)' }}>{n.body}</p>
@@ -1706,14 +1712,14 @@ function P2PPage({ addToast, updateCredits }) {
                     View & Sell
                   </button>
                 )}
-                {/* Buyer notification: seller matched */}
+                {/* Chat notification: seller matched or chat ready */}
                 {(n.type === 'p2p_seller_found' || n.type === 'p2p_chat_ready') && n.listing_id && (
                   <button className="btn btn-primary" style={{ padding: '6px 14px', fontSize: 12 }}
                           onClick={() => { setChatListingId(n.listing_id); setChatOpen(true); setNotifications(prev => prev.filter((_, idx) => idx !== i)); }}>
                     💬 Chat
                   </button>
                 )}
-                {/* Delete notification */}
+                {/* Dismiss notification */}
                 <button className="btn btn-danger" style={{ padding: '4px 10px', fontSize: 11 }}
                         onClick={() => setNotifications(prev => prev.filter((_, idx) => idx !== i))}>
                   ✕
@@ -1880,7 +1886,15 @@ function P2PPage({ addToast, updateCredits }) {
 
       {/* Chat Panel */}
       {chatOpen && chatListingId && (
-        <ChatPanel listingId={chatListingId} onClose={() => setChatOpen(false)} />
+        <ChatPanel listingId={chatListingId} onClose={() => {
+          setChatOpen(false);
+          setChatListingId(null);
+          // Reload notifications and requests after closing
+          api('/ws/notifications').then(d => { if (d && d.notifications) setNotifications(d.notifications); });
+          api('/p2p/my-requests').then(d => { if (d && d.requests) setMyRequests(d.requests); });
+          setResult(null);
+          setOptedIn(false);
+        }} />
       )}
     </div>
   );
@@ -2281,7 +2295,7 @@ function App() {
   }, []);
 
   const addToast = useCallback((t) => {
-    const id = Date.now();
+    const id = Date.now() + Math.random();
     setToasts(prev => [...prev, { ...t, id }]);
     setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), 4000);
   }, []);
