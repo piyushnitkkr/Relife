@@ -77,7 +77,29 @@ def rnd_date(days_ago_min: int, days_ago_max: int) -> datetime:
 # --------------------------------------------------------------------------- #
 def generate_users(n=200):
     users = []
-    for i in range(n):
+    # Always include demo_user first (the default auth user)
+    users.append({
+        "_id": "demo_user",
+        "name": "Alex Kumar",
+        "email": "alex@relife.demo",
+        "location": "Bangalore",
+        "rating": 4.5,
+        "green_credits": 420,
+        "return_rate_pct": 18,
+        "prime_member": True,
+        "account_age_days": 730,
+        "credit_history": [
+            {"event": "buy_refurbished", "points": 50, "timestamp": rnd_date(5, 10)},
+            {"event": "donate_product", "points": 60, "timestamp": rnd_date(10, 20)},
+            {"event": "sell_unused_p2p", "points": 40, "timestamp": rnd_date(20, 30)},
+            {"event": "choose_recycle", "points": 25, "timestamp": rnd_date(30, 40)},
+            {"event": "upload_product_images", "points": 10, "timestamp": rnd_date(40, 50)},
+            {"event": "complete_p2p_exchange", "points": 30, "timestamp": rnd_date(50, 60)},
+            {"event": "buy_refurbished", "points": 50, "timestamp": rnd_date(2, 5)},
+            {"event": "return_avoided", "points": 20, "timestamp": rnd_date(1, 3)},
+        ],
+    })
+    for i in range(1, n):
         uid = f"user_{i:04d}"
         name = f"{rng.choice(FIRST_NAMES)} {rng.choice(LAST_NAMES)}"
         users.append({
@@ -100,6 +122,32 @@ def generate_users(n=200):
 # --------------------------------------------------------------------------- #
 def generate_orders(users, n=1000):
     orders = []
+    # Ensure demo_user has a good mix of orders
+    demo_orders = [
+        {"cat": "electronics", "status": "delivered", "ptype": "refurbished"},
+        {"cat": "electronics", "status": "delivered", "ptype": "refurbished"},
+        {"cat": "clothing", "status": "returned", "ptype": "new"},
+        {"cat": "clothing", "status": "returned", "ptype": "new"},
+        {"cat": "baby_products", "status": "delivered", "ptype": "new"},
+        {"cat": "electronics", "status": "delivered", "ptype": "refurbished"},
+        {"cat": "sports", "status": "delivered", "ptype": "new"},
+        {"cat": "gaming", "status": "delivered", "ptype": "refurbished"},
+        {"cat": "toys", "status": "delivered", "ptype": "new"},
+        {"cat": "books", "status": "delivered", "ptype": "new"},
+    ]
+    for i, d in enumerate(demo_orders):
+        orders.append({
+            "_id": str(uuid.uuid4()),
+            "user_id": "demo_user",
+            "product_id": f"P{2000 + i}",
+            "product_name": rng.choice(PRODUCT_NAMES[d["cat"]]),
+            "product_category": d["cat"],
+            "purchase_date": rnd_date(10 + i * 15, 20 + i * 15),
+            "status": d["status"],
+            "price": rng.randint(500, 40000),
+            "product_type": d["ptype"],
+        })
+
     for _ in range(n):
         user = rng.choice(users)
         cat = rng.choice(CATEGORIES)
@@ -163,6 +211,24 @@ def generate_lifecycle_events(users, n=300):
         {"action": "recycle", "label": "Recycle"},
     ]
     events = []
+    # demo_user gets 15 lifecycle events for a good dashboard
+    demo_actions = [
+        actions[0], actions[0], actions[1], actions[1], actions[2],
+        actions[3], actions[3], actions[3], actions[4], actions[4],
+        actions[0], actions[1], actions[2], actions[3], actions[0],
+    ]
+    for i, action in enumerate(demo_actions):
+        events.append({
+            "_id": str(uuid.uuid4()),
+            "user_id": "demo_user",
+            "product_id": f"P{3000 + i}",
+            "input": {
+                "category": rng.choice(CATEGORIES),
+                "return_reason": rng.choice(RETURN_REASONS),
+            },
+            "result": action,
+            "created_at": rnd_date(1 + i * 5, 5 + i * 5),
+        })
     for _ in range(n):
         user = rng.choice(users)
         cat = rng.choice(CATEGORIES)
@@ -201,6 +267,14 @@ def generate_return_signals(n=100):
 # --------------------------------------------------------------------------- #
 def generate_cart_events(users, n=200):
     events = []
+    # demo_user gets 8 return_avoided events
+    for i in range(8):
+        events.append({
+            "_id": str(uuid.uuid4()),
+            "user_id": "demo_user",
+            "event": "return_avoided",
+            "created_at": rnd_date(1 + i * 5, 5 + i * 5),
+        })
     for _ in range(n):
         user = rng.choice(users)
         events.append({
