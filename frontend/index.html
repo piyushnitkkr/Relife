@@ -1361,7 +1361,9 @@ function VisionPage({ addToast }) {
 // ============================================================
 function LifecyclePage({ addToast }) {
   const [form, setForm] = useState({
-    product_id: 'DEMO001', category: 'electronics', return_reason: 'defective',
+    product_id: 'PRD-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
+    product_name: 'Samsung Galaxy S24',
+    category: 'electronics', return_reason: 'defective',
     product_age_days: 180, return_frequency: 1, repair_cost_estimate: 2000,
     seller_reputation: 4.2, accessories_present: true, days_since_purchase: 30,
   });
@@ -1424,7 +1426,7 @@ function LifecyclePage({ addToast }) {
           <div className="card-body">
             <h3 style={{ marginBottom: 20, fontSize: 18 }}>Product Details</h3>
             <div className="lifecycle-form">
-              {field('product_id', 'Product ID')}
+              {field('product_name', 'Product Name')}
               {field('category', 'Category', 'text', CATEGORIES)}
               {field('return_reason', 'Return Reason', 'text', REASONS)}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
