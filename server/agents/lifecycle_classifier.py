@@ -104,6 +104,42 @@ def classify_lifecycle(data: dict) -> dict:
     probabilities = _model.predict_proba(features)[0]
     confidence = round(float(probabilities[prediction]) * 100, 1)
     result = LABEL_MAP[prediction]
+
+    # Smart overrides based on business logic
+    repair_cost = data.get("repair_cost_estimate", 0)
+    category = data.get("category", "other")
+    return_reason = data.get("return_reason", "")
+    product_age = data.get("product_age_days", 0)
+
+    # High repair cost → recycle or donate (not worth refurbishing)
+    if repair_cost > 3000 and result["action"] in ("refurbish", "resell_certified"):
+        if repair_cost > 5000:
+            prediction = 4  # recycle
+            confidence = 82.0
+        else:
+            prediction = 3  # donate
+            confidence = 75.0
+        result = LABEL_MAP[prediction]
+
+    # Very old product (>3 years) + defective → recycle
+    if product_age > 1095 and return_reason == "defective":
+        if result["action"] in ("resell_certified", "refurbish"):
+            prediction = 4  # recycle
+            confidence = 78.0
+            result = LABEL_MAP[prediction]
+
+    # Changed mind + like new (low age) → resell
+    if return_reason == "changed_mind" and product_age < 30:
+        prediction = 0  # resell certified
+        confidence = 91.0
+        result = LABEL_MAP[prediction]
+
+    # Size issue on clothing → exchange marketplace
+    if return_reason == "size_issue" and category in ("clothing", "shoes"):
+        prediction = 2  # exchange
+        confidence = 88.0
+        result = LABEL_MAP[prediction]
+
     return {
         "action":                result["action"],
         "label":                 result["label"],

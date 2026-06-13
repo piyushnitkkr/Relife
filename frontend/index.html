@@ -1375,7 +1375,15 @@ function LifecyclePage({ addToast }) {
 
   const classify = async () => {
     setLoading(true);
-    const res = await api('/lifecycle/classify', { method: 'POST', body: JSON.stringify(form) });
+    const payload = {
+      ...form,
+      product_age_days: parseInt(form.product_age_days) || 0,
+      return_frequency: parseInt(form.return_frequency) || 0,
+      repair_cost_estimate: parseFloat(form.repair_cost_estimate) || 0,
+      seller_reputation: parseFloat(form.seller_reputation) || 4.0,
+      days_since_purchase: parseInt(form.days_since_purchase) || 0,
+    };
+    const res = await api('/lifecycle/classify', { method: 'POST', body: JSON.stringify(payload) });
     if (res && res.action) {
       setResult(res);
     } else {
@@ -1408,7 +1416,7 @@ function LifecyclePage({ addToast }) {
         </div>
       ) : (
         <input className="input" type={type} value={form[key]}
-               onChange={e => setForm(p => ({ ...p, [key]: type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value }))} />
+               onChange={e => setForm(p => ({ ...p, [key]: type === 'number' ? e.target.value : e.target.value }))} />
       )}
     </div>
   );
