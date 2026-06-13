@@ -27,6 +27,9 @@ class Settings:
     COGNITO_APP_CLIENT_ID: str = os.getenv("COGNITO_APP_CLIENT_ID", "")
     COGNITO_REGION: str = os.getenv("COGNITO_REGION", "us-east-1")
 
+    # Gemini
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+
     # App
     APP_ENV: str = os.getenv("APP_ENV", "development")
     DEBUG: bool = os.getenv("DEBUG", "true").lower() == "true"

@@ -1,33 +1,23 @@
 """
-Vision Grader — Uses AWS Rekognition to assess product condition.
-Maps real Rekognition labels to a damage/quality score.
-Free Tier: 5,000 images/month.
+Vision Grader — Uses Google Gemini Flash for AI-powered product condition grading.
+Falls back to simulation if API key not configured.
+Free Tier: 20 requests/day (Gemini 2.5 Flash).
 """
+import base64
+import json
 import hashlib
 import random
 from config import settings
 
 try:
-    import boto3
-    _boto3_available = True
+    import google.generativeai as genai
+    _genai_available = True
 except ImportError:
-    _boto3_available = False
+    _genai_available = False
 
-# Labels indicating good condition / packaging
-GOOD_CONDITION_LABELS = {
-    "Box", "Package", "Cardboard", "Packaging", "Carton",
-    "Plastic Wrap", "Sealed", "New", "Clean",
-}
-# Labels indicating wear/damage
-DAMAGE_INDICATORS = {
-    "Scratch", "Crack", "Dent", "Broken", "Damaged",
-    "Worn", "Stain", "Tear", "Burn", "Chip",
-    "Rust", "Dirt", "Dust", "Old", "Used", "Vintage",
-}
-# Labels indicating accessories present
 ACCESSORY_LABELS = {
     "Cable", "Charger", "Box", "Manual", "Adapter", "Remote",
-    "Headphones", "Case", "Cover", "Bag", "Wire",
+    "Headphones", "Case", "Cover", "Bag",
 }
 
 GRADE_THRESHOLDS = [
@@ -37,95 +27,72 @@ GRADE_THRESHOLDS = [
     (60, 100, "D", "Recycle",        1, "Recycle"),
 ]
 
-# Try to initialize Rekognition client
-_rekognition = None
-if _boto3_available:
+# Initialize Gemini
+_model = None
+if _genai_available and settings.GEMINI_API_KEY:
     try:
-        _rekognition = boto3.client("rekognition", region_name=settings.AWS_REGION)
-        _rekognition.meta.service_model
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        _model = genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
     except Exception:
-        _rekognition = None
+        _model = None
+
+GRADING_PROMPT = """You are a product condition grading AI for a refurbished marketplace.
+
+Analyze this product image and provide a condition assessment. Return ONLY valid JSON (no markdown, no backticks):
+
+{
+  "damage_score": <number 0-100, where 0=perfect new condition, 100=completely broken>,
+  "grade": "<A/B/C/D>",
+  "condition_notes": "<brief description of visible condition>",
+  "detected_damage": ["<list of damage types seen: scratch, dent, crack, stain, wear, etc>"],
+  "accessories_visible": ["<list of accessories seen: box, cable, charger, manual, etc>"],
+  "confidence": <number 0-100>
+}
+
+Grading scale:
+- A (0-10% damage): Like New, no visible wear, possibly still sealed/boxed
+- B (10-30% damage): Minor wear, light scratches, fully functional
+- C (30-60% damage): Visible damage, scratches/dents, needs refurbishment
+- D (60-100% damage): Heavy damage, broken parts, suitable for recycling
+
+Be realistic and critical. Most used products are B or C grade."""
 
 
-def _analyze_with_rekognition(image_bytes: bytes) -> dict:
-    """
-    Use Rekognition to detect labels, then score based on:
-    - Presence of damage-related labels → higher damage score
-    - Presence of packaging/new labels → lower damage score
-    - Average label confidence → image clarity correlates with condition
-    - Number of identifiable objects → well-maintained items photograph better
-    """
-    response = _rekognition.detect_labels(
-        Image={"Bytes": image_bytes},
-        MaxLabels=50,
-        MinConfidence=40
+async def _grade_with_gemini(image_bytes: bytes) -> dict:
+    """Send image to Gemini Flash for condition analysis."""
+    image_data = {
+        "mime_type": "image/jpeg",
+        "data": base64.b64encode(image_bytes).decode("utf-8"),
+    }
+
+    response = _model.generate_content(
+        [GRADING_PROMPT, image_data],
+        generation_config=genai.GenerationConfig(
+            temperature=0.2,
+            max_output_tokens=500,
+        ),
     )
-    labels = response.get("Labels", [])
 
-    # Calculate scores based on what Rekognition found
-    damage_score = 0
-    good_score = 0
-    accessories = []
+    text = response.text.strip()
+    # Clean up response — remove markdown code blocks if present
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1]
+    if text.endswith("```"):
+        text = text.rsplit("```", 1)[0]
+    text = text.strip()
 
-    all_label_names = set()
-    total_confidence = 0
-
-    for label in labels:
-        name = label["Name"]
-        conf = label["Confidence"]
-        all_label_names.add(name)
-        total_confidence += conf
-
-        # Check damage indicators
-        if name in DAMAGE_INDICATORS:
-            damage_score += conf * 0.8
-
-        # Check good condition indicators
-        if name in GOOD_CONDITION_LABELS:
-            good_score += conf * 0.5
-
-        # Check accessories
-        if name in ACCESSORY_LABELS:
-            accessories.append(name)
-
-    # Heuristic scoring:
-    # - Few labels detected = unclear/damaged item = higher damage
-    # - Low average confidence = poor image/worn item
-    # - Good condition labels reduce damage score
-    num_labels = max(len(labels), 1)
-    avg_confidence = total_confidence / num_labels if labels else 50
-
-    # Base damage from detected damage labels
-    base_damage = min(damage_score, 80)
-
-    # Penalty for low label count (damaged items are harder to identify)
-    if num_labels < 5:
-        base_damage += 15
-    elif num_labels < 10:
-        base_damage += 5
-
-    # Bonus for good condition labels
-    base_damage = max(0, base_damage - good_score)
-
-    # Bonus for high confidence (clear, well-maintained products)
-    if avg_confidence > 80:
-        base_damage = max(0, base_damage - 10)
-    elif avg_confidence < 60:
-        base_damage += 10
-
-    # Clamp to 0-100
-    final_damage = max(0, min(100, base_damage))
-
+    result = json.loads(text)
     return {
-        "damage_score": final_damage,
-        "accessories": list(set(accessories)),
-        "labels_found": len(labels),
-        "avg_confidence": round(avg_confidence, 1),
+        "damage_score": min(100, max(0, result.get("damage_score", 20))),
+        "accessories": result.get("accessories_visible", []),
+        "condition_notes": result.get("condition_notes", ""),
+        "detected_damage": result.get("detected_damage", []),
+        "confidence": result.get("confidence", 80),
     }
 
 
 def _simulate_analysis(image_bytes: bytes) -> dict:
-    """Fallback simulation when Rekognition unavailable."""
+    """Fallback simulation when Gemini unavailable."""
     digest = hashlib.md5(image_bytes).hexdigest()
     seed = int(digest[:8], 16)
     rng = random.Random(seed)
@@ -144,31 +111,38 @@ def _simulate_analysis(image_bytes: bytes) -> dict:
     return {
         "damage_score": damage_score,
         "accessories": accessories,
-        "labels_found": rng.randint(5, 25),
-        "avg_confidence": rng.uniform(60, 95),
+        "condition_notes": "Simulated grading",
+        "detected_damage": [],
+        "confidence": 75,
     }
 
 
 async def grade_from_images(image_data_list: list) -> dict:
     """
     Grade product condition from images.
-    Uses real Rekognition when available, simulation otherwise.
+    Uses Gemini Flash when API key configured, simulation otherwise.
     """
     all_damage_scores = []
     all_accessories = []
-    use_rekognition = _rekognition is not None
+    all_notes = []
+    all_damage_types = []
+    use_gemini = _model is not None
 
-    for img_bytes in image_data_list[:5]:
-        if use_rekognition:
+    for img_bytes in image_data_list[:3]:  # Max 3 images to conserve quota
+        if use_gemini:
             try:
-                result = _analyze_with_rekognition(img_bytes)
-            except Exception:
+                result = await _grade_with_gemini(img_bytes)
+            except Exception as e:
+                print(f"Gemini grading failed: {e}")
                 result = _simulate_analysis(img_bytes)
         else:
             result = _simulate_analysis(img_bytes)
 
         all_damage_scores.append(result["damage_score"])
         all_accessories.extend(result.get("accessories", []))
+        if result.get("condition_notes"):
+            all_notes.append(result["condition_notes"])
+        all_damage_types.extend(result.get("detected_damage", []))
 
     avg_damage = sum(all_damage_scores) / len(all_damage_scores) if all_damage_scores else 5.0
 
@@ -187,5 +161,7 @@ async def grade_from_images(image_data_list: list) -> dict:
         "accessories_detected": list(set(all_accessories)),
         "recommendation":      recommendation,
         "images_analyzed":     len(image_data_list),
-        "engine":              "rekognition" if use_rekognition else "simulated",
+        "condition_notes":     "; ".join(all_notes) if all_notes else "",
+        "damage_types":        list(set(all_damage_types)),
+        "engine":              "gemini-flash" if use_gemini else "simulated",
     }
