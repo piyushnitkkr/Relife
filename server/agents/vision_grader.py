@@ -53,19 +53,32 @@ def _analyze_with_rekognition(image_bytes: bytes) -> dict:
 
 def _simulate_rekognition(image_bytes: bytes) -> dict:
     """Deterministic simulation based on image content hash."""
-    digest = hashlib.md5(image_bytes[:512]).hexdigest()
+    digest = hashlib.md5(image_bytes).hexdigest()
     seed = int(digest[:8], 16)
     rng = random.Random(seed)
 
-    damage_score = rng.uniform(0, 55)
+    # More varied distribution for demo — spread across all grades
+    roll = rng.random()
+    if roll < 0.25:
+        damage_score = rng.uniform(0, 8)       # Grade A
+    elif roll < 0.50:
+        damage_score = rng.uniform(12, 28)     # Grade B
+    elif roll < 0.75:
+        damage_score = rng.uniform(32, 55)     # Grade C
+    else:
+        damage_score = rng.uniform(62, 85)     # Grade D
+
     detected_damage = []
     if damage_score > 10:
-        detected_damage = rng.sample(list(DAMAGE_LABELS), k=rng.randint(1, 2))
-    detected_acc = rng.sample(list(ACCESSORY_LABELS), k=rng.randint(0, 2))
+        detected_damage = rng.sample(list(DAMAGE_LABELS), k=rng.randint(1, 3))
+    detected_acc = rng.sample(list(ACCESSORY_LABELS), k=rng.randint(0, 3))
 
     labels = [
-        {"Name": l, "Confidence": rng.uniform(50, 95)}
-        for l in detected_damage + detected_acc
+        {"Name": l, "Confidence": damage_score + rng.uniform(-5, 10)}
+        for l in detected_damage
+    ] + [
+        {"Name": l, "Confidence": rng.uniform(60, 95)}
+        for l in detected_acc
     ]
     return {"Labels": labels}
 
