@@ -32,7 +32,7 @@ _model = None
 if _genai_available and settings.GEMINI_API_KEY:
     try:
         genai.configure(api_key=settings.GEMINI_API_KEY)
-        _model = genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
+        _model = genai.GenerativeModel("gemini-2.5-flash")
     except Exception:
         _model = None
 
