@@ -1,11 +1,32 @@
-"""WebSocket notification router."""
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+"""WebSocket notification router + HTTP notifications API."""
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from db import db
-from utils.auth import decode_token
+from utils.auth import decode_token, get_current_user
 import asyncio
 
 router = APIRouter(prefix="/ws", tags=["ws"])
 connections: dict[str, WebSocket] = {}
+
+
+@router.get("/notifications", tags=["notifications"])
+async def get_notifications(user=Depends(get_current_user)):
+    """Get unread notifications for the current user."""
+    notifs = list(db.notifications.find({"user_id": user["user_id"], "read": False}))
+    for n in notifs:
+        n.pop("_id", None)
+        if "created_at" in n:
+            n["created_at"] = str(n["created_at"])
+    return {"notifications": notifs, "count": len(notifs)}
+
+
+@router.post("/notifications/read", tags=["notifications"])
+async def mark_read(user=Depends(get_current_user)):
+    """Mark all notifications as read."""
+    db.notifications.update_many(
+        {"user_id": user["user_id"], "read": False},
+        {"$set": {"read": True}}
+    )
+    return {"status": "ok"}
 
 
 @router.websocket("/notify/{token}")

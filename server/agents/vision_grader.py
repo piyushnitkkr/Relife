@@ -38,7 +38,7 @@ if _boto3_available:
 
 
 def _use_real_rekognition() -> bool:
-    return _rekognition is not None and settings.is_production
+    return _rekognition is not None
 
 
 def _analyze_with_rekognition(image_bytes: bytes) -> dict:

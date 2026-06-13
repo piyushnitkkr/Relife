@@ -653,7 +653,19 @@ const { useState, useEffect, useCallback, useRef } = React;
 // CONFIG
 // ============================================================
 const API_BASE = '/api';
-const AUTH_HEADER = { Authorization: 'Bearer demo-token', 'Content-Type': 'application/json' };
+let CURRENT_USER = 'demo-token';
+let AUTH_HEADER = { Authorization: `Bearer ${CURRENT_USER}`, 'Content-Type': 'application/json' };
+
+function switchUser(token) {
+  CURRENT_USER = token;
+  AUTH_HEADER = { Authorization: `Bearer ${CURRENT_USER}`, 'Content-Type': 'application/json' };
+}
+
+const USERS_LIST = [
+  { token: 'demo-token', name: 'Alex Kumar (Buyer)', id: 'demo_user' },
+  { token: 'seller-token-1', name: 'Priya Sharma (Seller)', id: 'seller_01' },
+  { token: 'seller-token-2', name: 'Rahul Singh (Seller)', id: 'seller_02' },
+];
 
 // ============================================================
 // API SERVICE
@@ -794,7 +806,7 @@ function ToastSystem({ toasts, dismiss }) {
 // ============================================================
 // NAVIGATION
 // ============================================================
-function Nav({ page, setPage, credits }) {
+function Nav({ page, setPage, credits, currentUser, onSwitchUser }) {
   const tabs = [
     { id: 'home',      label: '🏠 Home' },
     { id: 'cart',      label: '🛒 Cart' },
@@ -817,6 +829,16 @@ function Nav({ page, setPage, credits }) {
             </button>
           ))}
         </div>
+        <select
+          className="input"
+          style={{ width: 'auto', padding: '6px 12px', fontSize: 12, marginRight: 8, background: 'var(--c-surface2)' }}
+          value={currentUser}
+          onChange={(e) => onSwitchUser(e.target.value)}
+        >
+          {USERS_LIST.map(u => (
+            <option key={u.token} value={u.token}>👤 {u.name}</option>
+          ))}
+        </select>
         <div className="nav-credits">
           <span>🌿</span>
           <span style={{ color: 'var(--c-text)' }}>{credits}</span>
@@ -2034,6 +2056,17 @@ function App() {
   const [page, setPage] = useState('home');
   const [credits, setCredits] = useState(350);
   const [toasts, setToasts] = useState([]);
+  const [currentUser, setCurrentUser] = useState('demo-token');
+
+  const handleSwitchUser = useCallback((token) => {
+    switchUser(token);
+    setCurrentUser(token);
+    setPage('home');
+    // Reload credits for new user
+    api('/credits/balance').then(d => {
+      if (d && d.balance !== undefined) setCredits(d.balance);
+    });
+  }, []);
 
   const addToast = useCallback((t) => {
     const id = Date.now();
@@ -2052,6 +2085,13 @@ function App() {
     }
   }, [addToast]);
 
+  // Load credits on mount
+  useEffect(() => {
+    api('/credits/balance').then(d => {
+      if (d && d.balance !== undefined) setCredits(d.balance);
+    });
+  }, []);
+
   const PAGE_COMPONENTS = {
     home:      <HomePage setPage={setPage} />,
     cart:      <CartPage addToast={addToast} />,
@@ -2065,7 +2105,7 @@ function App() {
 
   return (
     <div>
-      <Nav page={page} setPage={setPage} credits={credits} />
+      <Nav page={page} setPage={setPage} credits={credits} currentUser={currentUser} onSwitchUser={handleSwitchUser} />
       <ToastSystem toasts={toasts} dismiss={dismissToast} />
       <main style={{ minHeight: 'calc(100vh - 64px)' }}>
         {PAGE_COMPONENTS[page]}
