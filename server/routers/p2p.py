@@ -1,9 +1,9 @@
 """Feature 5 — P2P Marketplace router."""
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends, BackgroundTasks, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from db import db
-from utils.auth import get_current_user
+from utils.auth import get_current_user, decode_token
 from agents.p2p_ranker import rank_sellers
 import uuid
 
@@ -155,3 +155,104 @@ async def _notify_sellers(sellers, request_id, req):
                 "request_id": request_id, "read": False,
                 "created_at": datetime.utcnow(),
             })
+
+
+# ============================================================
+# P2P CHAT — WebSocket + HTTP endpoints
+# ============================================================
+
+class ChatMessage(BaseModel):
+    listing_id: str
+    message: str
+
+
+# Active WebSocket connections: {listing_id: {user_id: WebSocket}}
+chat_connections: dict[str, dict[str, WebSocket]] = {}
+
+
+@router.post("/chat/send")
+async def send_chat_message(msg: ChatMessage, user=Depends(get_current_user)):
+    """Store a chat message via HTTP (fallback if WS not available)."""
+    doc = {
+        "_id": str(uuid.uuid4()),
+        "listing_id": msg.listing_id,
+        "sender_id": user["user_id"],
+        "sender_name": user.get("name", "Anonymous"),
+        "message": msg.message,
+        "timestamp": datetime.utcnow(),
+    }
+    db.p2p_chats.insert_one(doc)
+    doc["timestamp"] = str(doc["timestamp"])
+    return {"status": "sent", "chat_message": doc}
+
+
+@router.get("/chat/{listing_id}")
+async def get_chat_history(listing_id: str, user=Depends(get_current_user)):
+    """Retrieve chat history for a listing."""
+    messages = list(db.p2p_chats.find({"listing_id": listing_id}))
+    for m in messages:
+        m.pop("_id", None)
+        if "timestamp" in m:
+            m["timestamp"] = str(m["timestamp"])
+    return {"messages": messages}
+
+
+@router.websocket("/ws/chat/{listing_id}/{token}")
+async def ws_chat(ws: WebSocket, listing_id: str, token: str):
+    """WebSocket endpoint for real-time P2P chat."""
+    user = decode_token(token) or {"user_id": token, "name": token}
+    uid = user["user_id"]
+    name = user.get("name", "Anonymous")
+
+    await ws.accept()
+
+    # Register connection
+    if listing_id not in chat_connections:
+        chat_connections[listing_id] = {}
+    chat_connections[listing_id][uid] = ws
+
+    try:
+        # Send chat history on connect
+        history = list(db.p2p_chats.find({"listing_id": listing_id}))
+        for m in history:
+            await ws.send_json({
+                "sender_id": m["sender_id"],
+                "sender_name": m.get("sender_name", "Anonymous"),
+                "message": m["message"],
+                "timestamp": str(m.get("timestamp", "")),
+            })
+
+        # Listen for messages
+        while True:
+            data = await ws.receive_json()
+            message = data.get("message", "")
+            if not message:
+                continue
+
+            doc = {
+                "_id": str(uuid.uuid4()),
+                "listing_id": listing_id,
+                "sender_id": uid,
+                "sender_name": name,
+                "message": message,
+                "timestamp": datetime.utcnow(),
+            }
+            db.p2p_chats.insert_one(doc)
+
+            # Broadcast to all connected users in this listing
+            payload = {
+                "sender_id": uid,
+                "sender_name": name,
+                "message": message,
+                "timestamp": str(doc["timestamp"]),
+            }
+            for conn_uid, conn_ws in list(chat_connections.get(listing_id, {}).items()):
+                try:
+                    await conn_ws.send_json(payload)
+                except Exception:
+                    chat_connections[listing_id].pop(conn_uid, None)
+
+    except WebSocketDisconnect:
+        chat_connections.get(listing_id, {}).pop(uid, None)
+        if listing_id in chat_connections and not chat_connections[listing_id]:
+            del chat_connections[listing_id]

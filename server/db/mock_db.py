@@ -368,6 +368,7 @@ class _DB:
     return_signals      = _Collection(list(RETURN_SIGNALS.values()))
     cart_events         = _Collection(CART_EVENTS)
     product_ratings     = _Collection(PRODUCT_RATINGS)
+    p2p_chats           = _Collection([])
 
 
 db = _DB()

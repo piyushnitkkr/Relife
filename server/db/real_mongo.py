@@ -22,6 +22,7 @@ class _DB:
     return_signals = _database["return_signals"]
     cart_events = _database["cart_events"]
     product_ratings = _database["product_ratings"]
+    p2p_chats = _database["p2p_chats"]
 
 
 db = _DB()
