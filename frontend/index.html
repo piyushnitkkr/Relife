@@ -156,37 +156,90 @@
     =========================== */
     .nav {
       position: sticky; top: 0; z-index: 100;
-      background: rgba(10,15,26,0.85); backdrop-filter: blur(20px);
+      background: rgba(10,15,26,0.9); backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--c-border);
       padding: 0 24px;
     }
     .nav-inner {
       max-width: 1200px; margin: 0 auto;
-      display: flex; align-items: center; gap: 8px;
+      display: flex; align-items: center; justify-content: space-between;
       height: 64px;
     }
-    .nav-logo {
-      font-family: var(--font-display); font-weight: 900; font-size: 22px;
+    .nav-hamburger {
+      background: none; border: none; color: var(--c-text);
+      font-size: 24px; cursor: pointer; padding: 8px;
+      border-radius: var(--radius-sm); transition: var(--transition);
+    }
+    .nav-hamburger:hover { background: var(--c-surface2); }
+    .nav-logo-center {
+      font-family: var(--font-display); font-weight: 900; font-size: 26px;
       background: linear-gradient(135deg, var(--c-green), #4ade80);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      margin-right: 24px; cursor: pointer; white-space: nowrap;
+      cursor: pointer; position: absolute; left: 50%; transform: translateX(-50%);
     }
-    .nav-tab {
-      padding: 8px 14px; border-radius: var(--radius-sm);
-      font-size: 13px; font-weight: 600; cursor: pointer;
-      transition: var(--transition); border: none;
-      background: transparent; color: var(--c-text-muted);
-      white-space: nowrap;
+    .nav-right {
+      display: flex; align-items: center; gap: 10px;
     }
-    .nav-tab:hover { background: var(--c-surface2); color: var(--c-text); }
-    .nav-tab.active { background: var(--c-green-glow); color: var(--c-green); }
-
+    .nav-user-select {
+      background: var(--c-surface2); border: 1px solid var(--c-border);
+      color: var(--c-text); padding: 6px 10px; border-radius: var(--radius-sm);
+      font-size: 12px; cursor: pointer; outline: none; max-width: 160px;
+    }
     .nav-credits {
-      margin-left: auto; display: flex; align-items: center; gap: 8px;
+      display: flex; align-items: center; gap: 6px;
       background: var(--c-surface2); border: 1px solid var(--c-border);
       padding: 6px 14px; border-radius: 999px; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: var(--transition);
     }
-    .nav-credits span:first-child { color: var(--c-green); }
+    .nav-credits:hover { border-color: var(--c-green); }
+
+    /* Side Panel */
+    .side-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6); z-index: 200;
+      animation: fadeIn 0.2s ease;
+    }
+    .side-panel {
+      position: fixed; top: 0; left: -300px; width: 280px; height: 100%;
+      background: var(--c-surface); border-right: 1px solid var(--c-border);
+      z-index: 300; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex; flex-direction: column;
+      box-shadow: 4px 0 30px rgba(0,0,0,0.5);
+    }
+    .side-panel.open { left: 0; }
+    .side-panel-header {
+      padding: 20px 20px 16px; display: flex; justify-content: space-between;
+      align-items: center; border-bottom: 1px solid var(--c-border);
+    }
+    .side-close {
+      background: none; border: none; color: var(--c-text-muted);
+      font-size: 20px; cursor: pointer; padding: 4px 8px;
+      border-radius: var(--radius-sm);
+    }
+    .side-close:hover { background: var(--c-surface2); color: var(--c-text); }
+    .side-panel-nav {
+      flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 4px;
+      overflow-y: auto;
+    }
+    .side-nav-item {
+      padding: 12px 16px; border-radius: var(--radius-sm);
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      border: none; background: transparent; color: var(--c-text-muted);
+      text-align: left; transition: var(--transition);
+    }
+    .side-nav-item:hover { background: var(--c-surface2); color: var(--c-text); }
+    .side-nav-item.active { background: var(--c-green-glow); color: var(--c-green); }
+    .side-panel-footer {
+      padding: 16px 20px; border-top: 1px solid var(--c-border);
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* Responsive: hide user select on small screens */
+    @media (max-width: 600px) {
+      .nav-user-select { display: none; }
+      .nav-logo-center { font-size: 22px; }
+    }
 
     /* ===========================
        HERO
@@ -818,6 +871,7 @@ function ToastSystem({ toasts, dismiss }) {
 // NAVIGATION
 // ============================================================
 function Nav({ page, setPage, credits, currentUser, onSwitchUser }) {
+  const [sideOpen, setSideOpen] = useState(false);
   const tabs = [
     { id: 'home',      label: '🏠 Home' },
     { id: 'cart',      label: '🛒 Cart' },
@@ -829,34 +883,72 @@ function Nav({ page, setPage, credits, currentUser, onSwitchUser }) {
     { id: 'dashboard', label: '📊 Dashboard' },
   ];
   return (
-    <nav className="nav">
-      <div className="nav-inner">
-        <div className="nav-logo" onClick={() => setPage('home')}>♻️ ReLife AI</div>
-        <div style={{ display: 'flex', gap: 4, overflowX: 'auto', flex: 1 }}>
+    <>
+      <nav className="nav">
+        <div className="nav-inner">
+          {/* Hamburger for mobile + sidebar toggle */}
+          <button className="nav-hamburger" onClick={() => setSideOpen(true)}>
+            ☰
+          </button>
+
+          {/* Centered Logo */}
+          <div className="nav-logo-center" onClick={() => setPage('home')}>
+            ♻️ ReLife AI
+          </div>
+
+          {/* Right side: user + credits */}
+          <div className="nav-right">
+            <select
+              className="nav-user-select"
+              value={currentUser}
+              onChange={(e) => onSwitchUser(e.target.value)}
+            >
+              {USERS_LIST.map(u => (
+                <option key={u.token} value={u.token}>👤 {u.name}</option>
+              ))}
+            </select>
+            <div className="nav-credits" onClick={() => setPage('credits')}>
+              <span>🌿</span>
+              <span style={{ color: 'var(--c-text)' }}>{credits}</span>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Side Panel Overlay */}
+      {sideOpen && (
+        <div className="side-overlay" onClick={() => setSideOpen(false)} />
+      )}
+
+      {/* Side Panel */}
+      <div className={`side-panel ${sideOpen ? 'open' : ''}`}>
+        <div className="side-panel-header">
+          <h3 style={{ fontSize: 18, fontWeight: 800 }}>♻️ ReLife AI</h3>
+          <button className="side-close" onClick={() => setSideOpen(false)}>✕</button>
+        </div>
+        <div className="side-panel-nav">
           {tabs.map(t => (
-            <button key={t.id} className={`nav-tab ${page === t.id ? 'active' : ''}`}
-                    onClick={() => setPage(t.id)}>
+            <button key={t.id}
+                    className={`side-nav-item ${page === t.id ? 'active' : ''}`}
+                    onClick={() => { setPage(t.id); setSideOpen(false); }}>
               {t.label}
             </button>
           ))}
         </div>
-        <select
-          className="input"
-          style={{ width: 'auto', padding: '6px 12px', fontSize: 12, marginRight: 8, background: 'var(--c-surface2)' }}
-          value={currentUser}
-          onChange={(e) => onSwitchUser(e.target.value)}
-        >
-          {USERS_LIST.map(u => (
-            <option key={u.token} value={u.token}>👤 {u.name}</option>
-          ))}
-        </select>
-        <div className="nav-credits">
-          <span>🌿</span>
-          <span style={{ color: 'var(--c-text)' }}>{credits}</span>
-          <span style={{ color: 'var(--c-text-muted)', fontSize: 11 }}>credits</span>
+        <div className="side-panel-footer">
+          <select
+            className="input"
+            style={{ fontSize: 13 }}
+            value={currentUser}
+            onChange={(e) => { onSwitchUser(e.target.value); setSideOpen(false); }}
+          >
+            {USERS_LIST.map(u => (
+              <option key={u.token} value={u.token}>👤 {u.name}</option>
+            ))}
+          </select>
         </div>
       </div>
-    </nav>
+    </>
   );
 }
 
