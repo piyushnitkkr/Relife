@@ -2,7 +2,7 @@
 Recommendation Engine — Health Score calculator + product ranker.
 Collaborative filtering replaced by content-based scoring for demo.
 """
-from db.mongo import db
+from db import db
 
 
 def calculate_health_score(product: dict) -> dict:

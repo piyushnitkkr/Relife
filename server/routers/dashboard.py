@@ -1,6 +1,6 @@
 """Feature 7 — Sustainability Dashboard router."""
 from fastapi import APIRouter, Depends
-from db.mongo import db
+from db import db
 from utils.auth import get_current_user
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])

@@ -1,6 +1,6 @@
 """WebSocket notification router."""
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from db.mongo import db
+from db import db
 from utils.auth import decode_token
 import asyncio
 

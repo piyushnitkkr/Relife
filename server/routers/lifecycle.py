@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, UploadFile, File, Form
 from pydantic import BaseModel
 from agents.lifecycle_classifier import classify_lifecycle
 from agents.vision_grader import grade_from_images
-from db.mongo import db
+from db import db
 from utils.auth import get_current_user
 import uuid
 from datetime import datetime

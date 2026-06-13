@@ -1,9 +1,8 @@
-"""DynamoDB mock — stores green credits for fast read."""
-from db.mongo import db
+"""Mock DynamoDB table for local development."""
 
 
-class _DynamoTable:
-    """Simulates DynamoDB user-credits table."""
+class MockDynamoTable:
+    """Simulates DynamoDB user-credits table in-memory."""
     _store: dict = {}
 
     def update_item(self, Key: dict, UpdateExpression: str,
@@ -14,10 +13,5 @@ class _DynamoTable:
 
     def get_item(self, Key: dict):
         uid = Key.get("user_id", "")
-        # Prefer live MongoDB balance
-        user = db.users.find_one({"_id": uid}) or {}
-        balance = user.get("green_credits", self._store.get(uid, 0))
+        balance = self._store.get(uid, 0)
         return {"Item": {"user_id": uid, "green_credits": balance}}
-
-
-dynamo_table = _DynamoTable()

@@ -5,7 +5,7 @@ Predicts probability that a cart item will be returned.
 import pickle
 import numpy as np
 from pathlib import Path
-from db.mongo import db
+from db import db
 
 MODEL_PATH = Path(__file__).parent.parent / "ml" / "models" / "return_predictor.pkl"
 

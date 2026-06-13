@@ -1,7 +1,7 @@
 """Feature 3 — Personalized Refurbished Recommendations router."""
 from fastapi import APIRouter, Depends, Query
 from agents.recommendation_engine import get_recommendations, calculate_health_score
-from db.mongo import db
+from db import db
 from utils.auth import get_current_user
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])

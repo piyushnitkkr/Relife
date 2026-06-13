@@ -1,7 +1,6 @@
 """Feature 4 — Green Credits System router."""
 from fastapi import APIRouter, Depends
-from db.mongo import db
-from db.dynamo import dynamo_table
+from db import db, dynamo_table
 from utils.auth import get_current_user
 from datetime import datetime
 

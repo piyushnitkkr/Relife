@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
 from pydantic import BaseModel
 from datetime import datetime, timedelta
-from db.mongo import db
+from db import db
 from utils.auth import get_current_user
 from agents.p2p_ranker import rank_sellers
 import uuid
