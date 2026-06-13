@@ -125,7 +125,7 @@ async def get_matches(request_id: str, user=Depends(get_current_user)):
 async def my_requests(user=Depends(get_current_user)):
     requests = list(db.p2p_requests.find({"buyer_id": user["user_id"]}))
     for r in requests:
-        r.pop("_id", None)
+        r["request_id"] = r.pop("_id", "")
         r["created_at"] = str(r.get("created_at", ""))
     return {"requests": requests}
 
