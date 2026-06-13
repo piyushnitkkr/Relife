@@ -1630,6 +1630,8 @@ function P2PPage({ addToast, updateCredits }) {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [sellerOptIn, setSellerOptIn] = useState({ listing_price: '', condition: 'good', description: '' });
+  const [sellerImages, setSellerImages] = useState([]);
+  const [sellerPreviews, setSellerPreviews] = useState([]);
   const [optedIn, setOptedIn] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
@@ -1673,6 +1675,16 @@ function P2PPage({ addToast, updateCredits }) {
     const credits = 40;
     updateCredits(credits);
     addToast({ title: '🎉 Listed Successfully!', body: `+${credits} Green Credits earned for P2P sale!`, type: 'green' });
+
+    // Send product images as first chat message if provided
+    if (sellerImages.length > 0) {
+      const imageNames = sellerImages.map(f => f.name).join(', ');
+      await api('/p2p/chat/send', {
+        method: 'POST',
+        body: JSON.stringify({ listing_id: listingId, message: `📸 Product photos attached: ${imageNames}\n\nCondition: ${sellerOptIn.condition}\n${sellerOptIn.description || ''}` })
+      });
+    }
+
     // Open chat automatically after seller opts in
     setChatListingId(listingId);
     setChatOpen(true);
@@ -1816,6 +1828,26 @@ function P2PPage({ addToast, updateCredits }) {
                     <label className="label">Description</label>
                     <textarea className="input" style={{ height: 72, resize: 'vertical' }} value={sellerOptIn.description} placeholder="Briefly describe the item condition..."
                               onChange={e => setSellerOptIn(p => ({ ...p, description: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="label">Product Photos (optional)</label>
+                    <div className="dropzone" style={{ padding: 16 }}
+                         onClick={() => document.getElementById('seller-img-input').click()}>
+                      <input id="seller-img-input" type="file" accept="image/*" multiple
+                             onChange={e => {
+                               const files = Array.from(e.target.files || []).slice(0, 4);
+                               setSellerImages(files);
+                               setSellerPreviews(files.map(f => URL.createObjectURL(f)));
+                             }} />
+                      <p style={{ fontSize: 13, color: 'var(--c-text-muted)' }}>📸 Click to add up to 4 photos</p>
+                    </div>
+                    {sellerPreviews.length > 0 && (
+                      <div className="preview-grid" style={{ marginTop: 8 }}>
+                        {sellerPreviews.map((src, i) => (
+                          <img key={i} src={src} alt="" className="preview-img" />
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <button className="btn btn-primary" style={{ justifyContent: 'center' }} onClick={optIn}
                           disabled={!sellerOptIn.listing_price}>
