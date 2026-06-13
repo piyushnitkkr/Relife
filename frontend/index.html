@@ -1963,27 +1963,32 @@ function ChatPanel({ listingId, onClose }) {
       if (d && d.messages) setMessages(d.messages);
     });
 
-    // Poll for new messages every 2 seconds
+    // Poll for new messages every 3 seconds — only update if count changed
+    let lastCount = 0;
     const interval = setInterval(() => {
       api(`/p2p/chat/${listingId}`).then(d => {
-        if (d && d.messages) setMessages(d.messages);
+        if (d && d.messages && d.messages.length !== lastCount) {
+          lastCount = d.messages.length;
+          setMessages(d.messages);
+        }
       });
-    }, 2000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [listingId]);
 
   const sendMessage = () => {
     if (!input.trim()) return;
+    const msgText = input.trim();
+    setInput('');
+    // Optimistic: show message instantly
+    const optimistic = { sender_id: USERS_LIST.find(u => u.token === CURRENT_USER)?.id, sender_name: 'You', message: msgText, timestamp: new Date().toISOString() };
+    setMessages(prev => [...prev, optimistic]);
+    // Send to server
     api('/p2p/chat/send', {
       method: 'POST',
-      body: JSON.stringify({ listing_id: listingId, message: input.trim() })
-    }).then(res => {
-      if (res && res.chat_message) {
-        setMessages(prev => [...prev, res.chat_message]);
-      }
+      body: JSON.stringify({ listing_id: listingId, message: msgText })
     });
-    setInput('');
   };
 
   const handleKeyDown = (e) => {
