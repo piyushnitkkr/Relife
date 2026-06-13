@@ -1,6 +1,6 @@
 """Feature 4 — Green Credits System router."""
 from fastapi import APIRouter, Depends
-from db import db, dynamo_table
+from db import db
 from utils.auth import get_current_user
 from datetime import datetime
 
@@ -37,11 +37,6 @@ async def award_credits(event: str, user=Depends(get_current_user)):
              "event": event, "points": points, "timestamp": datetime.utcnow()
          }}}
     )
-    dynamo_table.update_item(
-        Key={"user_id": user["user_id"]},
-        UpdateExpression="ADD green_credits :p",
-        ExpressionAttributeValues={":p": points},
-    )
     return {
         "awarded":   points,
         "event":     event,
@@ -70,8 +65,8 @@ async def redeem_credits(event: str, user=Depends(get_current_user)):
 
 @router.get("/balance")
 async def get_balance(user=Depends(get_current_user)):
-    result  = dynamo_table.get_item(Key={"user_id": user["user_id"]})
-    balance = int(result.get("Item", {}).get("green_credits", 0))
+    user_doc = db.users.find_one({"_id": user["user_id"]}) or {}
+    balance = int(user_doc.get("green_credits", 0))
     return {
         "balance":   balance,
         "inr_value": f"₹{balance * CREDIT_TO_INR:.0f}",
@@ -80,6 +75,5 @@ async def get_balance(user=Depends(get_current_user)):
             "🌿 Green Member" if balance >= 200 else
             "🌱 Getting Started"
         ),
-        "history": (db.users.find_one({"_id": user["user_id"]}) or {})
-                   .get("credit_history", [])[-10:],
+        "history": user_doc.get("credit_history", [])[-10:],
     }

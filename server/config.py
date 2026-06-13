@@ -1,6 +1,5 @@
 """
 ReLife AI — Centralized configuration loaded from environment.
-Uses .env locally, environment variables on EC2/Lambda.
 """
 import os
 from pathlib import Path
@@ -15,19 +14,11 @@ if env_path.exists():
 class Settings:
     # AWS
     AWS_REGION: str = os.getenv("AWS_REGION", "us-east-1")
-    S3_BUCKET: str = os.getenv("S3_BUCKET", "relife-ai-assets")
-    DYNAMO_TABLE_NAME: str = os.getenv("DYNAMO_TABLE_NAME", "relife-user-credits")
-    SNS_TOPIC_ARN: str = os.getenv("SNS_TOPIC_ARN", "")
 
     # MongoDB
     MONGO_URI: str = os.getenv("MONGO_URI", "")
 
-    # Cognito
-    COGNITO_USER_POOL_ID: str = os.getenv("COGNITO_USER_POOL_ID", "")
-    COGNITO_APP_CLIENT_ID: str = os.getenv("COGNITO_APP_CLIENT_ID", "")
-    COGNITO_REGION: str = os.getenv("COGNITO_REGION", "us-east-1")
-
-    # Gemini
+    # Gemini AI
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
     # App
@@ -42,7 +33,6 @@ class Settings:
 
     @property
     def use_mock_db(self) -> bool:
-        """Use in-memory mock when no MongoDB URI is configured."""
         return not self.MONGO_URI
 
     @property

@@ -9,6 +9,4 @@ if settings.use_mock_db:
 else:
     from db.real_mongo import db
 
-from db.real_dynamo import dynamo_table
-
-__all__ = ["db", "dynamo_table"]
+__all__ = ["db"]
