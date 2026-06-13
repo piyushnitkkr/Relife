@@ -137,11 +137,13 @@ Return ONLY valid JSON (no markdown, no backticks):
 }}
 
 Decision rules:
-- resell_certified: Product is like new, minimal age, changed mind return
-- refurbish: Minor issues, repair cost is reasonable (<30% of product value)
+- resell_certified: Product is like new, minimal age, changed mind return, low/no repair needed
+- refurbish: Minor issues, repair cost is LOW (under ₹2000). NEVER refurbish if repair cost > ₹3000
 - exchange_marketplace: Size/fit issues, clothing, still functional
-- donate: Old but functional, low demand, or baby products outgrown
-- recycle: Broken, very old, repair cost exceeds value, defective electronics >2 years old
+- donate: Old but functional, low demand, baby products outgrown
+- recycle: Broken beyond repair, repair cost > ₹3000, very old defective electronics, repair cost exceeds 30% of typical product value
+
+CRITICAL: If repair cost > ₹3000, the answer MUST be "donate" or "recycle", NEVER "refurbish" or "resell_certified".
 
 Product data:
 - Category: {data.get('category', 'other')}

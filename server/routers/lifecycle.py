@@ -12,7 +12,8 @@ router = APIRouter(prefix="/lifecycle", tags=["lifecycle"])
 
 
 class LifecycleInput(BaseModel):
-    product_id: str
+    product_id: str = ""
+    product_name: str = ""
     category: str
     return_reason: str
     product_age_days: int
