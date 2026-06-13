@@ -14,6 +14,10 @@ server/ml/models/*.pkl
 .env
 server/.env
 
+# Keys and secrets
+*.pem
+*.key
+
 # IDE
 .vscode/
 .idea/
