@@ -1620,6 +1620,18 @@ function P2PPage({ addToast, updateCredits }) {
   const [loading, setLoading] = useState(false);
   const [sellerOptIn, setSellerOptIn] = useState({ listing_price: '', condition: 'good', description: '' });
   const [optedIn, setOptedIn] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [myRequests, setMyRequests] = useState([]);
+
+  // Load notifications and requests on mount / user switch
+  useEffect(() => {
+    api('/ws/notifications').then(d => {
+      if (d && d.notifications) setNotifications(d.notifications);
+    });
+    api('/p2p/my-requests').then(d => {
+      if (d && d.requests) setMyRequests(d.requests);
+    });
+  }, []);
 
   const CATEGORIES = ['baby_products', 'electronics', 'sports_gear', 'gaming', 'toys', 'books', 'clothing', 'furniture'];
   const MOCK_SELLERS = [
@@ -1655,6 +1667,42 @@ function P2PPage({ addToast, updateCredits }) {
         <h2 className="section-title">🤝 P2P Marketplace</h2>
         <p className="section-sub">Connect directly with real owners. AI matches you with the best sellers in your area.</p>
       </div>
+
+      {/* Notifications Banner */}
+      {notifications.length > 0 && (
+        <div className="mb-6">
+          <h3 style={{ fontSize: 16, marginBottom: 12 }}>🔔 Incoming Requests ({notifications.length})</h3>
+          {notifications.map((n, i) => (
+            <div key={i} className="alert alert-warning mb-2" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <p style={{ fontWeight: 700, fontSize: 14 }}>{n.title}</p>
+                <p style={{ fontSize: 13, color: 'var(--c-text-muted)' }}>{n.body}</p>
+              </div>
+              <button className="btn btn-primary" style={{ padding: '6px 14px', fontSize: 12 }}
+                      onClick={() => {
+                        setResult({ request_id: n.request_id || 'req_demo', potential_matches: 1, top_preview: [], message: 'You can now opt in as seller!' });
+                        setNotifications(prev => prev.filter((_, idx) => idx !== i));
+                      }}>
+                View & Sell
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* My Active Requests (as buyer) */}
+      {myRequests.length > 0 && !result && (
+        <div className="mb-6">
+          <h3 style={{ fontSize: 16, marginBottom: 12 }}>📋 My Active Requests</h3>
+          {myRequests.slice(0, 3).map((r, i) => (
+            <div key={i} className="alert alert-info mb-2">
+              <p style={{ fontWeight: 600, fontSize: 13 }}>
+                {r.category?.replace(/_/g, ' ')} · Budget: ₹{r.max_budget?.toLocaleString()} · Status: {r.status}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="grid-2" style={{ gap: 24, alignItems: 'start' }}>
         {/* Buyer Request */}
