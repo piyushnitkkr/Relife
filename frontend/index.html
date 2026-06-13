@@ -2048,6 +2048,28 @@ function ChatPanel({ listingId, onClose }) {
         <div ref={messagesEndRef} />
       </div>
       <div className="chat-input">
+        <input id="chat-img-input" type="file" accept="image/*"
+               onChange={e => {
+                 const file = e.target.files?.[0];
+                 if (!file) return;
+                 const reader = new FileReader();
+                 reader.onload = () => {
+                   const imgMsg = `[img]${reader.result}[/img]`;
+                   api('/p2p/chat/send', {
+                     method: 'POST',
+                     body: JSON.stringify({ listing_id: listingId, message: imgMsg })
+                   }).then(res => {
+                     if (res && res.chat_message) setMessages(prev => [...prev, res.chat_message]);
+                   });
+                 };
+                 reader.readAsDataURL(file);
+                 e.target.value = '';
+               }} />
+        <button style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', padding: '4px 8px' }}
+                onClick={() => document.getElementById('chat-img-input').click()}
+                title="Send image">
+          📷
+        </button>
         <input
           className="input"
           style={{ flex: 1 }}
