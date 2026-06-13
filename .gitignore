@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# ML Models (large binary files)
+server/ml/models/*.pkl
+
+# Environment
+.env
+server/.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# AWS SAM
+.aws-sam/
+samconfig.toml
+
+# Node (if frontend is split later)
+node_modules/
+
+# Docker
+*.log

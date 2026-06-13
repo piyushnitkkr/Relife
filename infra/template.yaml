@@ -1,0 +1,171 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: ReLife AI — Infrastructure (Free Tier)
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [production, staging]
+  MongoUri:
+    Type: String
+    NoEcho: true
+    Description: MongoDB Atlas connection string
+  FrontendUrl:
+    Type: String
+    Default: https://main.xxxxxxxx.amplifyapp.com
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: python3.11
+    Environment:
+      Variables:
+        APP_ENV: !Ref Environment
+        MONGO_URI: !Ref MongoUri
+        DYNAMO_TABLE_NAME: !Ref UserCreditsTable
+        S3_BUCKET: !Ref AssetsBucket
+        FRONTEND_URL: !Ref FrontendUrl
+
+Resources:
+  # ============================================================
+  # S3 — Product Images (5 GB Free)
+  # ============================================================
+  AssetsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: relife-ai-assets
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, PUT, POST]
+            AllowedOrigins: [!Ref FrontendUrl]
+            MaxAge: 3600
+
+  # ============================================================
+  # DynamoDB — User Credits (25 GB Free)
+  # ============================================================
+  UserCreditsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: relife-user-credits
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+
+  # ============================================================
+  # Cognito — User Auth (50K MAU Free)
+  # ============================================================
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: relife-ai-users
+      AutoVerifiedAttributes: [email]
+      UsernameAttributes: [email]
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: relife-ai-web
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+
+  # ============================================================
+  # SNS Topic — P2P Notifications (1M Free)
+  # ============================================================
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: relife-notifications
+
+  # ============================================================
+  # SQS — Async Job Queue (1M Free)
+  # ============================================================
+  LifecycleQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: relife-lifecycle-jobs
+      VisibilityTimeout: 60
+
+  # ============================================================
+  # API Gateway (1M Calls Free)
+  # ============================================================
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: !Sub "'${FrontendUrl}'"
+
+  # ============================================================
+  # Lambda — Vision Grader (1M Requests Free)
+  # ============================================================
+  VisionGraderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: relife-vision-grader
+      CodeUri: ../lambdas/vision_lambda/
+      Handler: handler.lambda_handler
+      Policies:
+        - RekognitionDetectOnlyPolicy: {}
+        - S3ReadPolicy:
+            BucketName: !Ref AssetsBucket
+      Events:
+        GradeApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /lambda/vision/grade
+            Method: post
+
+  # ============================================================
+  # Lambda — Lifecycle Classifier
+  # ============================================================
+  LifecycleFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: relife-lifecycle-classifier
+      CodeUri: ../lambdas/lifecycle_lambda/
+      Handler: handler.lambda_handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UserCreditsTable
+      Events:
+        ClassifyApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /lambda/lifecycle/classify
+            Method: post
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/'
+  S3Bucket:
+    Value: !Ref AssetsBucket
+  DynamoTable:
+    Value: !Ref UserCreditsTable
+  UserPoolId:
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Value: !Ref UserPoolClient
+  SnsTopicArn:
+    Value: !Ref NotificationTopic

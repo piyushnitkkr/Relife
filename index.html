@@ -1,0 +1,2086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReLife AI — Intelligent Second-Life Commerce Platform</title>
+  <meta name="description" content="ReLife AI turns returned products into assets using AI-powered lifecycle decisions, computer vision grading, P2P marketplace, and green credits." />
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  
+  <!-- React + ReactDOM from CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /* ===========================
+       DESIGN TOKENS & RESET
+    =========================== */
+    :root {
+      --c-bg:          #0a0f1a;
+      --c-surface:     #111827;
+      --c-surface2:    #1a2235;
+      --c-border:      rgba(255,255,255,0.08);
+      --c-green:       #22c55e;
+      --c-green-dark:  #16a34a;
+      --c-green-glow:  rgba(34,197,94,0.15);
+      --c-amber:       #f59e0b;
+      --c-red:         #ef4444;
+      --c-blue:        #3b82f6;
+      --c-purple:      #8b5cf6;
+      --c-teal:        #14b8a6;
+      --c-orange:      #FF9900;
+      --c-text:        #f1f5f9;
+      --c-text-muted:  #94a3b8;
+      --c-text-dim:    #64748b;
+      --radius-sm:     8px;
+      --radius-md:     14px;
+      --radius-lg:     20px;
+      --radius-xl:     28px;
+      --shadow-card:   0 4px 24px rgba(0,0,0,0.4);
+      --shadow-glow:   0 0 40px rgba(34,197,94,0.2);
+      --transition:    all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      --font-main:     'Inter', system-ui, sans-serif;
+      --font-display:  'Outfit', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-main);
+      background: var(--c-bg);
+      color: var(--c-text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ===========================
+       TYPOGRAPHY
+    =========================== */
+    h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 800; line-height: 1.2; }
+
+    /* ===========================
+       SCROLLBAR
+    =========================== */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--c-surface); }
+    ::-webkit-scrollbar-thumb { background: var(--c-green-dark); border-radius: 3px; }
+
+    /* ===========================
+       GLOBAL COMPONENTS
+    =========================== */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: var(--radius-sm);
+      font-weight: 600; font-size: 14px; cursor: pointer;
+      border: none; transition: var(--transition); text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--c-green), var(--c-green-dark));
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(34,197,94,0.3);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(34,197,94,0.4); }
+    .btn-secondary {
+      background: var(--c-surface2); color: var(--c-text);
+      border: 1px solid var(--c-border);
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+    .btn-orange {
+      background: linear-gradient(135deg, #FF9900, #e67e00);
+      color: #fff; box-shadow: 0 4px 15px rgba(255,153,0,0.3);
+    }
+    .btn-orange:hover { transform: translateY(-2px); }
+    .btn-danger { background: var(--c-red); color: #fff; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+    .card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+    .card-body { padding: 24px; }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .badge-green { background: rgba(34,197,94,0.15); color: var(--c-green); }
+    .badge-blue  { background: rgba(59,130,246,0.15); color: var(--c-blue); }
+    .badge-amber { background: rgba(245,158,11,0.15); color: var(--c-amber); }
+    .badge-red   { background: rgba(239,68,68,0.15);  color: var(--c-red); }
+    .badge-purple{ background: rgba(139,92,246,0.15); color: var(--c-purple); }
+
+    .input {
+      width: 100%; padding: 12px 16px;
+      background: var(--c-surface2); border: 1px solid var(--c-border);
+      border-radius: var(--radius-sm); color: var(--c-text); font-size: 14px;
+      transition: var(--transition); outline: none; font-family: var(--font-main);
+    }
+    .input:focus { border-color: var(--c-green); box-shadow: 0 0 0 3px var(--c-green-glow); }
+    
+    select.input option { background: var(--c-surface2); color: var(--c-text); }
+
+    .label { display: block; font-size: 13px; font-weight: 600; color: var(--c-text-muted); margin-bottom: 6px; }
+
+    .divider { height: 1px; background: var(--c-border); margin: 20px 0; }
+
+    .progress-bar {
+      height: 8px; background: rgba(255,255,255,0.08);
+      border-radius: 999px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, var(--c-green), #4ade80);
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ===========================
+       LAYOUT
+    =========================== */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+    /* ===========================
+       NAVIGATION
+    =========================== */
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,15,26,0.85); backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--c-border);
+      padding: 0 24px;
+    }
+    .nav-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; gap: 8px;
+      height: 64px;
+    }
+    .nav-logo {
+      font-family: var(--font-display); font-weight: 900; font-size: 22px;
+      background: linear-gradient(135deg, var(--c-green), #4ade80);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-right: 24px; cursor: pointer; white-space: nowrap;
+    }
+    .nav-tab {
+      padding: 8px 14px; border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: var(--transition); border: none;
+      background: transparent; color: var(--c-text-muted);
+      white-space: nowrap;
+    }
+    .nav-tab:hover { background: var(--c-surface2); color: var(--c-text); }
+    .nav-tab.active { background: var(--c-green-glow); color: var(--c-green); }
+
+    .nav-credits {
+      margin-left: auto; display: flex; align-items: center; gap: 8px;
+      background: var(--c-surface2); border: 1px solid var(--c-border);
+      padding: 6px 14px; border-radius: 999px; font-size: 14px; font-weight: 700;
+    }
+    .nav-credits span:first-child { color: var(--c-green); }
+
+    /* ===========================
+       HERO
+    =========================== */
+    .hero {
+      padding: 80px 24px 60px;
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 800px;
+      background: radial-gradient(ellipse, rgba(34,197,94,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3);
+      color: var(--c-green); padding: 6px 16px; border-radius: 999px;
+      font-size: 13px; font-weight: 600; margin-bottom: 24px;
+      animation: fadeInDown 0.6s ease;
+    }
+    .hero h1 {
+      font-size: clamp(32px, 6vw, 64px);
+      background: linear-gradient(135deg, #f1f5f9, #94a3b8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 20px; animation: fadeInUp 0.8s ease;
+    }
+    .hero h1 .accent {
+      background: linear-gradient(135deg, var(--c-green), #4ade80);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      font-size: 18px; color: var(--c-text-muted); max-width: 600px;
+      margin: 0 auto 32px; line-height: 1.7;
+      animation: fadeInUp 0.9s ease;
+    }
+    .hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; animation: fadeInUp 1s ease; }
+
+    /* Feature pills */
+    .feature-pills {
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+      margin-top: 40px;
+    }
+    .feature-pill {
+      background: var(--c-surface); border: 1px solid var(--c-border);
+      padding: 8px 16px; border-radius: 999px;
+      font-size: 13px; font-weight: 600; color: var(--c-text-muted);
+      display: flex; align-items: center; gap: 6px;
+      cursor: pointer; transition: var(--transition);
+    }
+    .feature-pill:hover { border-color: var(--c-green); color: var(--c-green); }
+
+    /* ===========================
+       STATS BAR
+    =========================== */
+    .stats-bar {
+      background: var(--c-surface);
+      border-top: 1px solid var(--c-border);
+      border-bottom: 1px solid var(--c-border);
+      padding: 20px 24px;
+    }
+    .stats-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+    }
+    .stat-item { text-align: center; }
+    .stat-value { font-family: var(--font-display); font-size: 28px; font-weight: 900; color: var(--c-green); }
+    .stat-label { font-size: 12px; color: var(--c-text-muted); margin-top: 4px; font-weight: 500; }
+
+    /* ===========================
+       SECTION
+    =========================== */
+    .section { padding: 48px 24px; }
+    .section-header { margin-bottom: 28px; }
+    .section-title { font-size: 28px; margin-bottom: 8px; }
+    .section-sub { color: var(--c-text-muted); font-size: 15px; }
+
+    /* ===========================
+       CARDS GRID
+    =========================== */
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+    @media (max-width: 900px) {
+      .grid-3 { grid-template-columns: repeat(2, 1fr); }
+      .grid-4 { grid-template-columns: repeat(2, 1fr); }
+      .stats-inner { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .stats-inner { grid-template-columns: repeat(2, 1fr); }
+      .nav-tab { font-size: 11px; padding: 6px 10px; }
+    }
+
+    /* ===========================
+       PRODUCT CARD (Refurbished)
+    =========================== */
+    .product-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden; transition: var(--transition);
+    }
+    .product-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(34,197,94,0.3);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    }
+    .product-img { width: 100%; height: 180px; object-fit: cover; }
+    .product-img-placeholder {
+      width: 100%; height: 180px;
+      background: linear-gradient(135deg, var(--c-surface2), #1e293b);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 48px;
+    }
+    .product-body { padding: 16px; }
+    .product-tags {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;
+    }
+    .product-name { font-size: 14px; font-weight: 600; margin-bottom: 10px; line-height: 1.4; }
+    .health-score-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .health-score-val {
+      font-family: var(--font-display); font-size: 32px; font-weight: 900;
+    }
+    .health-score-sub { font-size: 11px; color: var(--c-text-muted); }
+    .breakdown-bar { margin-bottom: 8px; }
+    .breakdown-label { font-size: 11px; color: var(--c-text-muted); margin-bottom: 3px; display: flex; justify-content: space-between; }
+    .price-row { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
+    .price-new { font-size: 18px; font-weight: 800; color: var(--c-green); }
+    .price-old { font-size: 12px; color: var(--c-text-dim); text-decoration: line-through; margin-left: 6px; }
+
+    /* ===========================
+       CART & RETURN RISK
+    =========================== */
+    .risk-banner {
+      border-left: 4px solid; border-radius: var(--radius-sm);
+      padding: 16px; margin-bottom: 12px;
+      animation: slideInLeft 0.4s ease;
+    }
+    .risk-high   { border-color: var(--c-red);   background: rgba(239,68,68,0.08); }
+    .risk-medium { border-color: var(--c-amber); background: rgba(245,158,11,0.08); }
+    .risk-low    { border-color: var(--c-green); background: rgba(34,197,94,0.08); }
+    .risk-title { font-weight: 700; font-size: 14px; display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .risk-score { font-size: 22px; font-weight: 900; }
+    .risk-body { font-size: 13px; color: var(--c-text-muted); }
+    .risk-tip { font-size: 12px; color: var(--c-text-dim); margin-top: 4px; }
+
+    .cart-item {
+      display: flex; gap: 12px; align-items: center;
+      padding: 16px; background: var(--c-surface2);
+      border-radius: var(--radius-md); margin-bottom: 12px;
+      border: 1px solid var(--c-border);
+    }
+    .cart-item-icon { font-size: 36px; }
+    .cart-item-info { flex: 1; }
+    .cart-item-name { font-weight: 600; font-size: 15px; }
+    .cart-item-meta { font-size: 12px; color: var(--c-text-muted); margin-top: 2px; }
+    .cart-item-price { font-weight: 800; color: var(--c-orange); font-size: 16px; }
+
+    /* ===========================
+       VISION UPLOAD
+    =========================== */
+    .dropzone {
+      border: 2px dashed var(--c-border);
+      border-radius: var(--radius-lg); padding: 40px;
+      text-align: center; cursor: pointer; transition: var(--transition);
+    }
+    .dropzone.active, .dropzone:hover {
+      border-color: var(--c-green);
+      background: var(--c-green-glow);
+    }
+    .dropzone-icon { font-size: 48px; margin-bottom: 12px; }
+    .dropzone-text { font-weight: 600; font-size: 16px; }
+    .dropzone-sub { font-size: 13px; color: var(--c-text-muted); margin-top: 6px; }
+
+    .grade-result {
+      border-radius: var(--radius-lg); padding: 24px;
+      animation: fadeInUp 0.5s ease;
+    }
+    .grade-A { background: rgba(34,197,94,0.1);  border: 2px solid rgba(34,197,94,0.4); }
+    .grade-B { background: rgba(59,130,246,0.1); border: 2px solid rgba(59,130,246,0.4); }
+    .grade-C { background: rgba(245,158,11,0.1); border: 2px solid rgba(245,158,11,0.4); }
+    .grade-D { background: rgba(239,68,68,0.1);  border: 2px solid rgba(239,68,68,0.4); }
+    .grade-letter {
+      font-family: var(--font-display); font-size: 72px; font-weight: 900;
+      line-height: 1; margin-bottom: 4px;
+    }
+
+    /* ===========================
+       LIFECYCLE DECISION
+    =========================== */
+    .lifecycle-form { display: flex; flex-direction: column; gap: 16px; }
+
+    .decision-card {
+      background: var(--c-surface2); border-radius: var(--radius-lg);
+      padding: 28px; text-align: center;
+      border: 2px solid var(--c-green);
+      animation: scaleIn 0.4s ease;
+    }
+    .decision-icon { font-size: 56px; margin-bottom: 12px; }
+    .decision-label { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+    .decision-sub { color: var(--c-text-muted); font-size: 14px; margin-bottom: 16px; }
+    .confidence-bar { margin-bottom: 16px; }
+
+    .all-scores { display: flex; flex-direction: column; gap: 8px; }
+    .score-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+    .score-label { width: 180px; color: var(--c-text-muted); }
+    .score-bar { flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+    .score-fill { height: 100%; background: linear-gradient(90deg, var(--c-green), #4ade80); border-radius: 3px; transition: width 1s ease; }
+    .score-val { width: 40px; text-align: right; font-weight: 700; }
+
+    /* ===========================
+       P2P
+    =========================== */
+    .seller-card {
+      background: var(--c-surface2); border: 1px solid var(--c-border);
+      border-radius: var(--radius-md); padding: 16px;
+      display: flex; align-items: center; gap: 14px;
+      transition: var(--transition);
+    }
+    .seller-card:hover { border-color: var(--c-green); }
+    .seller-avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--c-green), var(--c-teal));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .seller-info { flex: 1; }
+    .seller-name { font-weight: 700; font-size: 15px; }
+    .seller-meta { font-size: 12px; color: var(--c-text-muted); margin-top: 3px; }
+    .seller-score { text-align: right; }
+    .match-score { font-family: var(--font-display); font-size: 24px; font-weight: 900; color: var(--c-green); }
+
+    /* ===========================
+       CREDITS PANEL
+    =========================== */
+    .credits-hero {
+      background: linear-gradient(135deg, #1a3d2b, #0f2d1f);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: var(--radius-xl); padding: 40px;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .credits-hero::before {
+      content: '';
+      position: absolute; top: -50%; left: 50%; transform: translateX(-50%);
+      width: 400px; height: 400px;
+      background: radial-gradient(ellipse, rgba(34,197,94,0.15) 0%, transparent 70%);
+    }
+    .credits-amount {
+      font-family: var(--font-display); font-size: 80px; font-weight: 900;
+      color: var(--c-green); line-height: 1; position: relative;
+    }
+    .credits-tier { font-size: 20px; font-weight: 700; margin: 12px 0; }
+    .credits-inr { color: var(--c-text-muted); font-size: 16px; }
+
+    .credit-rule {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; background: var(--c-surface2);
+      border-radius: var(--radius-sm); border: 1px solid var(--c-border);
+      transition: var(--transition);
+    }
+    .credit-rule:hover { border-color: var(--c-green); }
+    .credit-rule-label { font-weight: 600; font-size: 14px; }
+    .credit-rule-sub { font-size: 12px; color: var(--c-text-muted); }
+    .credit-points { font-family: var(--font-display); font-size: 22px; font-weight: 900; color: var(--c-green); }
+
+    .redeem-card {
+      background: var(--c-surface2); border: 1px solid var(--c-border);
+      border-radius: var(--radius-md); padding: 20px; text-align: center;
+      transition: var(--transition); cursor: pointer;
+    }
+    .redeem-card:hover { border-color: var(--c-green); transform: translateY(-2px); }
+    .redeem-card h4 { font-size: 15px; margin-bottom: 6px; }
+    .redeem-cost { font-size: 20px; font-weight: 800; color: var(--c-green); margin-bottom: 12px; }
+
+    /* ===========================
+       DASHBOARD
+    =========================== */
+    .impact-hero {
+      background: linear-gradient(135deg, #1a3d2b 0%, #0f2947 100%);
+      border-radius: var(--radius-xl); padding: 48px; text-align: center;
+      position: relative; overflow: hidden; border: 1px solid rgba(34,197,94,0.2);
+    }
+    .impact-emoji { font-size: 72px; margin-bottom: 16px; display: block; }
+    .impact-title { font-size: 36px; margin-bottom: 8px; }
+    .impact-sub { color: var(--c-text-muted); font-size: 16px; }
+
+    .stat-card {
+      background: var(--c-surface2); border: 1px solid var(--c-border);
+      border-radius: var(--radius-lg); padding: 24px;
+      transition: var(--transition);
+    }
+    .stat-card:hover { border-color: rgba(34,197,94,0.3); transform: translateY(-2px); }
+    .stat-card-icon { font-size: 36px; margin-bottom: 12px; display: block; }
+    .stat-card-val { font-family: var(--font-display); font-size: 36px; font-weight: 900; }
+    .stat-card-label { font-size: 14px; font-weight: 600; color: var(--c-text-muted); margin-top: 4px; }
+    .stat-card-sub { font-size: 12px; color: var(--c-text-dim); margin-top: 2px; }
+
+    /* ===========================
+       NOTIFICATION TOAST
+    =========================== */
+    .toast-container {
+      position: fixed; top: 80px; right: 20px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 10px;
+      max-width: 360px;
+    }
+    .toast {
+      background: var(--c-surface2); border: 1px solid var(--c-border);
+      border-radius: var(--radius-md); padding: 16px;
+      animation: slideInRight 0.4s ease;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    }
+    .toast-green { border-left: 4px solid var(--c-green); }
+    .toast-blue  { border-left: 4px solid var(--c-blue); }
+    .toast-amber { border-left: 4px solid var(--c-amber); }
+    .toast-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+    .toast-body  { font-size: 12px; color: var(--c-text-muted); }
+
+    /* ===========================
+       HISTORY LIST
+    =========================== */
+    .history-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; border-bottom: 1px solid var(--c-border);
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-event { font-size: 13px; font-weight: 600; }
+    .history-points { font-weight: 800; }
+    .history-points.earn { color: var(--c-green); }
+    .history-points.spend { color: var(--c-red); }
+
+    /* ===========================
+       LOADING SPINNER
+    =========================== */
+    .spinner {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: var(--c-green);
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto;
+    }
+
+    /* ===========================
+       ANIMATIONS
+    =========================== */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(40px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .animate-pulse { animation: pulse 2s infinite; }
+
+    /* Shimmer loading */
+    .shimmer {
+      background: linear-gradient(90deg, var(--c-surface2) 25%, #1e293b 50%, var(--c-surface2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius-sm);
+    }
+    @keyframes shimmer {
+      from { background-position: 200% 0; }
+      to   { background-position: -200% 0; }
+    }
+
+    /* Tag */
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 4px;
+    }
+    .tag-green { background: rgba(34,197,94,0.15); color: var(--c-green); }
+    .tag-blue  { background: rgba(59,130,246,0.15); color: var(--c-blue); }
+    .tag-amber { background: rgba(245,158,11,0.15); color: var(--c-amber); }
+
+    /* Section tabs */
+    .tab-group { display: flex; gap: 4px; background: var(--c-surface2); padding: 4px; border-radius: var(--radius-sm); }
+    .tab-item {
+      flex: 1; padding: 8px 12px; border-radius: 6px; font-size: 13px;
+      font-weight: 600; cursor: pointer; border: none; background: transparent;
+      color: var(--c-text-muted); transition: var(--transition); text-align: center;
+    }
+    .tab-item.active { background: var(--c-surface); color: var(--c-text); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+
+    /* Alert */
+    .alert { border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px; }
+    .alert-info { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); }
+    .alert-success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); }
+    .alert-warning { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); }
+
+    /* Glow effect on hover for special cards */
+    .glow-card:hover { box-shadow: var(--shadow-glow); }
+
+    /* Image preview grid */
+    .preview-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .preview-img { width: 72px; height: 72px; object-fit: cover; border-radius: var(--radius-sm); border: 2px solid var(--c-border); }
+
+    /* Flex helpers */
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .items-center { align-items: center; }
+    .items-start { align-items: flex-start; }
+    .justify-between { justify-content: space-between; }
+    .justify-center { justify-content: center; }
+    .gap-2 { gap: 8px; }
+    .gap-3 { gap: 12px; }
+    .gap-4 { gap: 16px; }
+    .gap-6 { gap: 24px; }
+    .flex-1 { flex: 1; }
+    .w-full { width: 100%; }
+    .mt-1 { margin-top: 4px; }
+    .mt-2 { margin-top: 8px; }
+    .mt-3 { margin-top: 12px; }
+    .mt-4 { margin-top: 16px; }
+    .mt-6 { margin-top: 24px; }
+    .mb-2 { margin-bottom: 8px; }
+    .mb-4 { margin-bottom: 16px; }
+    .mb-6 { margin-bottom: 24px; }
+    .text-sm { font-size: 13px; }
+    .text-xs { font-size: 11px; }
+    .text-muted { color: var(--c-text-muted); }
+    .text-green { color: var(--c-green); }
+    .text-amber { color: var(--c-amber); }
+    .text-red { color: var(--c-red); }
+    .text-center { text-align: center; }
+    .font-bold { font-weight: 700; }
+    .font-black { font-weight: 900; }
+    .relative { position: relative; }
+    .hidden { display: none; }
+
+    /* Input file hidden */
+    input[type="file"] { display: none; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+// ============================================================
+// CONFIG
+// ============================================================
+// Auto-detect API endpoint: use env-injected value or fall back to localhost
+const API_BASE = window.__RELIFE_API_BASE__ || 'http://localhost:8000';
+const AUTH_HEADER = { Authorization: 'Bearer demo-token', 'Content-Type': 'application/json' };
+
+// ============================================================
+// API SERVICE
+// ============================================================
+async function api(path, options = {}) {
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      headers: AUTH_HEADER,
+      ...options,
+    });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return await res.json();
+  } catch (e) {
+    console.warn(`API ${path} failed:`, e.message);
+    return null;
+  }
+}
+
+// ============================================================
+// MOCK DATA (used when backend not available)
+// ============================================================
+const MOCK_REFURBISHED = [
+  {
+    product_id: 'REF001', name: 'MacBook Air M1 (Refurbished)',
+    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400',
+    category: 'electronics', refurb_price: 65000, original_price: 95000,
+    vision_grade: 'A', health_score: 92.1, trust_badge: '🏆 Highly Trusted',
+    seller_rating: 4.8, warranty_months_remaining: 6,
+    breakdown: { condition: 35, repair_history: 20, warranty: 10, seller_trust: 14.4, component_health: 9.1 },
+  },
+  {
+    product_id: 'REF002', name: 'Sony WH-1000XM4 Headphones',
+    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400',
+    category: 'electronics', refurb_price: 14500, original_price: 26000,
+    vision_grade: 'B', health_score: 76.4, trust_badge: '✅ Verified Good',
+    seller_rating: 4.5, warranty_months_remaining: 3,
+    breakdown: { condition: 26.2, repair_history: 17, warranty: 5, seller_trust: 13.5, component_health: 8.5 },
+  },
+  {
+    product_id: 'REF003', name: 'Dyson V11 Vacuum (Certified Refurb)',
+    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
+    category: 'electronics', refurb_price: 28000, original_price: 44000,
+    vision_grade: 'A', health_score: 95.4, trust_badge: '🏆 Highly Trusted',
+    seller_rating: 4.9, warranty_months_remaining: 9,
+    breakdown: { condition: 35, repair_history: 20, warranty: 15, seller_trust: 14.7, component_health: 9.6 },
+  },
+  {
+    product_id: 'REF004', name: 'Lego Technic Set (Complete)',
+    image: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?w=400',
+    category: 'toys', refurb_price: 3200, original_price: 5500,
+    vision_grade: 'B', health_score: 78.9, trust_badge: '✅ Verified Good',
+    seller_rating: 4.3, warranty_months_remaining: 0,
+    breakdown: { condition: 26.2, repair_history: 20, warranty: 0, seller_trust: 12.9, component_health: 10 },
+  },
+  {
+    product_id: 'REF005', name: 'Yoga Mat + Resistance Bands Kit',
+    image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400',
+    category: 'sports', refurb_price: 900, original_price: 1800,
+    vision_grade: 'A', health_score: 91.1, trust_badge: '🏆 Highly Trusted',
+    seller_rating: 4.7, warranty_months_remaining: 0,
+    breakdown: { condition: 35, repair_history: 20, warranty: 0, seller_trust: 14.1, component_health: 10 },
+  },
+  {
+    product_id: 'REF006', name: 'Kindle Paperwhite 11th Gen',
+    image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400',
+    category: 'electronics', refurb_price: 7500, original_price: 13999,
+    vision_grade: 'A', health_score: 87.6, trust_badge: '🏆 Highly Trusted',
+    seller_rating: 4.6, warranty_months_remaining: 4,
+    breakdown: { condition: 35, repair_history: 20, warranty: 6.7, seller_trust: 13.8, component_health: 8.9 },
+  },
+];
+
+const MOCK_CART = [
+  { product_id: 'P100', name: 'Nike Running Shoes (Red)', category: 'clothing', size: '10', price: 5500, icon: '👟' },
+  { product_id: 'P101', name: 'Samsung Galaxy Watch 6', category: 'electronics', price: 18000, icon: '⌚' },
+];
+
+const MOCK_DASHBOARD = {
+  products_saved: 12, co2_saved_kg: 52.6, trees_equivalent: 2.5,
+  items_donated: 3, items_recycled: 1, p2p_exchanges: 4,
+  returns_avoided: 2, refurb_bought: 1, green_credits: 350,
+  impact_level: '🌳 Eco Champion',
+};
+
+const MOCK_BALANCE = {
+  balance: 350, inr_value: '₹175', tier: '🌿 Green Member',
+  history: [
+    { event: 'buy_refurbished', points: 50 },
+    { event: 'donate_product', points: 60 },
+    { event: 'sell_unused_p2p', points: 40 },
+    { event: 'choose_recycle', points: 25 },
+    { event: 'upload_product_images', points: 10 },
+    { event: 'complete_p2p_exchange', points: 30 },
+  ],
+};
+
+const LIFECYCLE_ACTIONS = {
+  resell_certified:     { label: 'Certified Refurbished', icon: '✨', color: 'var(--c-green)', desc: 'Like-new quality! List as certified refurbished and earn premium price.' },
+  refurbish:            { label: 'Send for Refurbishment', icon: '🔧', color: 'var(--c-blue)', desc: 'Professional repair will restore this to excellent condition.' },
+  exchange_marketplace: { label: 'Exchange Marketplace', icon: '🔄', color: 'var(--c-teal)', desc: 'List in our P2P marketplace to find a new owner quickly.' },
+  donate:               { label: 'Donate to NGO', icon: '🤝', color: 'var(--c-purple)', desc: 'This product can bring joy to someone in need. Donate it!' },
+  recycle:              { label: 'Recycle', icon: '♻️', color: 'var(--c-amber)', desc: 'Responsibly recycle at our certified partner centres.' },
+};
+
+// ============================================================
+// UTILITIES
+// ============================================================
+const fmt = (n) => n?.toLocaleString?.('en-IN') ?? n;
+
+function healthColor(score) {
+  if (score >= 85) return 'var(--c-green)';
+  if (score >= 70) return 'var(--c-blue)';
+  return 'var(--c-amber)';
+}
+
+function riskColor(level) {
+  if (level === 'High')   return 'risk-high';
+  if (level === 'Medium') return 'risk-medium';
+  return 'risk-low';
+}
+
+// ============================================================
+// TOAST SYSTEM
+// ============================================================
+function ToastSystem({ toasts, dismiss }) {
+  return (
+    <div className="toast-container">
+      {toasts.map(t => (
+        <div key={t.id} className={`toast toast-${t.type || 'green'}`} onClick={() => dismiss(t.id)} style={{ cursor: 'pointer' }}>
+          <div className="toast-title">{t.title}</div>
+          <div className="toast-body">{t.body}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function Nav({ page, setPage, credits }) {
+  const tabs = [
+    { id: 'home',      label: '🏠 Home' },
+    { id: 'cart',      label: '🛒 Cart' },
+    { id: 'vision',    label: '👁️ Vision' },
+    { id: 'lifecycle', label: '♻️ Lifecycle' },
+    { id: 'market',    label: '🏪 Refurbished' },
+    { id: 'p2p',       label: '🤝 P2P Market' },
+    { id: 'credits',   label: '🌿 Credits' },
+    { id: 'dashboard', label: '📊 Dashboard' },
+  ];
+  return (
+    <nav className="nav">
+      <div className="nav-inner">
+        <div className="nav-logo" onClick={() => setPage('home')}>♻️ ReLife AI</div>
+        <div style={{ display: 'flex', gap: 4, overflowX: 'auto', flex: 1 }}>
+          {tabs.map(t => (
+            <button key={t.id} className={`nav-tab ${page === t.id ? 'active' : ''}`}
+                    onClick={() => setPage(t.id)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="nav-credits">
+          <span>🌿</span>
+          <span style={{ color: 'var(--c-text)' }}>{credits}</span>
+          <span style={{ color: 'var(--c-text-muted)', fontSize: 11 }}>credits</span>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+// ============================================================
+// HOME PAGE
+// ============================================================
+function HomePage({ setPage }) {
+  const features = [
+    { id: 'lifecycle', icon: '🤖', title: 'AI Lifecycle Engine', desc: 'XGBoost decides resell / refurbish / donate / recycle automatically', badge: 'Feature 1' },
+    { id: 'vision',    icon: '👁️', title: 'Vision Grading',      desc: 'Computer vision grades product condition from photos in seconds', badge: 'Feature 2' },
+    { id: 'market',    icon: '♻️', title: 'Smart Recommendations', desc: 'Transparent Health Scores build trust for refurbished products', badge: 'Feature 3' },
+    { id: 'credits',   icon: '🌿', title: 'Green Credits',        desc: 'Earn rewards for every sustainable choice you make', badge: 'Feature 4' },
+    { id: 'p2p',       icon: '🤝', title: 'P2P Marketplace',      desc: 'Connect with real owners inside Amazon for used products', badge: 'Feature 5' },
+    { id: 'cart',      icon: '⚠️', title: 'Return Prevention',    desc: 'AI warns about return risk before you checkout', badge: 'Feature 6' },
+    { id: 'dashboard', icon: '📊', title: 'Sustainability Dashboard', desc: 'See your personal CO₂ savings and environmental impact', badge: 'Feature 7' },
+  ];
+
+  return (
+    <div>
+      {/* HERO */}
+      <section className="hero">
+        <div className="hero-badge">🏆 Amazon Hackathon 2024 · Sustainable Commerce</div>
+        <h1>Turn Returns into <span className="accent">Assets</span></h1>
+        <p className="hero-sub">
+          ReLife AI gives every returned or idle product a second life using 7 intelligent AI-powered systems built directly into the shopping experience.
+        </p>
+        <div className="hero-cta">
+          <button className="btn btn-primary" onClick={() => setPage('vision')}>
+            📸 Grade a Product
+          </button>
+          <button className="btn btn-secondary" onClick={() => setPage('market')}>
+            ♻️ Browse Refurbished
+          </button>
+          <button className="btn btn-orange" onClick={() => setPage('dashboard')}>
+            📊 My Impact
+          </button>
+        </div>
+        <div className="feature-pills">
+          {features.map(f => (
+            <div key={f.id} className="feature-pill" onClick={() => setPage(f.id)}>
+              {f.icon} {f.title}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* STATS BAR */}
+      <div className="stats-bar">
+        <div className="stats-inner">
+          <div className="stat-item">
+            <div className="stat-value">24%</div>
+            <div className="stat-label">Amazon Return Rate</div>
+          </div>
+          <div className="stat-item">
+            <div className="stat-value">₹1,200</div>
+            <div className="stat-label">Avg Cost per Return</div>
+          </div>
+          <div className="stat-item">
+            <div className="stat-value">2.5 kg</div>
+            <div className="stat-label">CO₂ per Avoided Return</div>
+          </div>
+          <div className="stat-item">
+            <div className="stat-value">40%</div>
+            <div className="stat-label">Returns P2P Matchable</div>
+          </div>
+        </div>
+      </div>
+
+      {/* FEATURES GRID */}
+      <section className="section container">
+        <div className="section-header">
+          <h2 className="section-title">7 AI-Powered Features</h2>
+          <p className="section-sub">Each feature tackles a different aspect of the returns and sustainability problem</p>
+        </div>
+        <div className="grid-3">
+          {features.map((f, i) => (
+            <div key={f.id} className="card glow-card" style={{ cursor: 'pointer', animationDelay: `${i * 0.1}s` }}
+                 onClick={() => setPage(f.id)}>
+              <div className="card-body">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <span style={{ fontSize: 40 }}>{f.icon}</span>
+                  <span className="badge badge-green">{f.badge}</span>
+                </div>
+                <h3 style={{ fontSize: 18, marginBottom: 8 }}>{f.title}</h3>
+                <p style={{ fontSize: 14, color: 'var(--c-text-muted)', lineHeight: 1.6 }}>{f.desc}</p>
+                <div style={{ marginTop: 16 }}>
+                  <button className="btn btn-secondary" style={{ fontSize: 12 }}>
+                    Explore →
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ============================================================
+// CART PAGE (Feature 6 — Return Risk)
+// ============================================================
+function CartPage({ addToast }) {
+  const [cart, setCart] = useState(MOCK_CART);
+  const [risks, setRisks] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [newItem, setNewItem] = useState({ name: '', category: 'electronics', price: '' });
+
+  const CATEGORIES = ['electronics', 'clothing', 'baby_products', 'furniture', 'sports', 'books', 'gaming', 'toys'];
+
+  const analyzeCart = async () => {
+    setLoading(true);
+    const result = await api('/cart/analyze', {
+      method: 'POST',
+      body: JSON.stringify({ items: cart.map(i => ({ ...i, product_id: i.product_id || i.name.slice(0,6) })) }),
+    });
+    
+    if (result) {
+      setRisks(result.analysis);
+    } else {
+      // Mock response
+      setRisks(cart.map(item => ({
+        product_id: item.product_id,
+        return_risk: {
+          risk_score: item.category === 'clothing' ? 68 : 22,
+          risk_level: item.category === 'clothing' ? 'Medium' : 'Low',
+          reason: item.category === 'clothing'
+            ? 'Our AI flagged this because you have a high personal return rate and you\'ve returned clothing items before.'
+            : 'Low return risk based on your profile.',
+          tip: item.category === 'clothing' ? 'Check the size guide carefully before ordering' : 'You\'re likely to enjoy this product!',
+          top_return_reasons: item.category === 'clothing' ? ['size_issue', 'color_mismatch'] : [],
+        },
+      })));
+    }
+    setLoading(false);
+    addToast({ title: '✅ Risk Analysis Complete', body: 'Your cart has been analyzed for return risk.', type: 'green' });
+  };
+
+  const addItem = () => {
+    if (!newItem.name) return;
+    const item = {
+      product_id: 'P' + Date.now(),
+      name: newItem.name,
+      category: newItem.category,
+      price: parseFloat(newItem.price) || 999,
+      icon: newItem.category === 'electronics' ? '📱' : newItem.category === 'clothing' ? '👕' : '📦',
+    };
+    setCart(prev => [...prev, item]);
+    setNewItem({ name: '', category: 'electronics', price: '' });
+    setRisks(null);
+  };
+
+  const removeItem = (pid) => {
+    setCart(prev => prev.filter(i => i.product_id !== pid));
+    setRisks(null);
+  };
+
+  const getRiskForItem = (pid) => risks?.find(r => r.product_id === pid)?.return_risk;
+
+  const total = cart.reduce((s, i) => s + (i.price || 0), 0);
+
+  return (
+    <div className="section container">
+      <div className="section-header">
+        <h2 className="section-title">🛒 Smart Cart</h2>
+        <p className="section-sub">AI predicts return probability before you checkout</p>
+      </div>
+
+      <div className="grid-2" style={{ gap: 24, alignItems: 'start' }}>
+        {/* Cart Items */}
+        <div>
+          {cart.map(item => {
+            const risk = getRiskForItem(item.product_id);
+            return (
+              <div key={item.product_id}>
+                <div className="cart-item">
+                  <div className="cart-item-icon">{item.icon || '📦'}</div>
+                  <div className="cart-item-info">
+                    <div className="cart-item-name">{item.name}</div>
+                    <div className="cart-item-meta">{item.category} {item.size ? `· Size ${item.size}` : ''}</div>
+                  </div>
+                  <div>
+                    <div className="cart-item-price">₹{fmt(item.price)}</div>
+                    <button onClick={() => removeItem(item.product_id)}
+                            style={{ fontSize: 11, color: 'var(--c-text-dim)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 4 }}>
+                      Remove
+                    </button>
+                  </div>
+                </div>
+                {risk && (
+                  <div className={`risk-banner ${riskColor(risk.risk_level)}`} style={{ margin: '-8px 0 12px 0' }}>
+                    <div className="risk-title">
+                      <span>⚠️ {risk.risk_level} Return Risk</span>
+                      <span className="risk-score">{risk.risk_score}%</span>
+                    </div>
+                    <div className="risk-body">{risk.reason}</div>
+                    <div className="risk-tip">💡 {risk.tip}</div>
+                    {risk.top_return_reasons?.length > 0 && (
+                      <div style={{ fontSize: 11, color: 'var(--c-text-dim)', marginTop: 6 }}>
+                        Top reasons: {risk.top_return_reasons.map(r => r.replace(/_/g,' ')).join(' · ')}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {cart.length === 0 && (
+            <div className="card" style={{ padding: 40, textAlign: 'center' }}>
+              <div style={{ fontSize: 56, marginBottom: 12 }}>🛒</div>
+              <p style={{ color: 'var(--c-text-muted)' }}>Your cart is empty. Add items below.</p>
+            </div>
+          )}
+
+          {/* Add item */}
+          <div className="card" style={{ marginTop: 16 }}>
+            <div className="card-body">
+              <h4 style={{ marginBottom: 14 }}>➕ Add Item to Cart</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <input className="input" placeholder="Product name (e.g. Floral Kurti)" value={newItem.name}
+                       onChange={e => setNewItem(p => ({ ...p, name: e.target.value }))} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <select className="input" value={newItem.category}
+                          onChange={e => setNewItem(p => ({ ...p, category: e.target.value }))}>
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <input className="input" placeholder="Price (₹)" type="number" value={newItem.price}
+                         onChange={e => setNewItem(p => ({ ...p, price: e.target.value }))} />
+                </div>
+                <button className="btn btn-secondary" onClick={addItem} style={{ width: '100%' }}>
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Order Summary */}
+        <div>
+          <div className="card">
+            <div className="card-body">
+              <h3 style={{ marginBottom: 20 }}>Order Summary</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14, color: 'var(--c-text-muted)' }}>
+                <span>{cart.length} items</span>
+                <span>₹{fmt(total)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14, color: 'var(--c-text-muted)' }}>
+                <span>Delivery</span><span>FREE</span>
+              </div>
+              <div className="divider" />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: 18, marginBottom: 20 }}>
+                <span>Total</span><span>₹{fmt(total)}</span>
+              </div>
+              <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}
+                      onClick={analyzeCart} disabled={loading || cart.length === 0}>
+                {loading ? '🔍 Analyzing…' : '⚠️ Check Return Risk'}
+              </button>
+              {risks && (
+                <button className="btn btn-orange" style={{ width: '100%', justifyContent: 'center', marginTop: 10 }}>
+                  🛒 Proceed to Checkout
+                </button>
+              )}
+              {risks && (
+                <div className="alert alert-info" style={{ marginTop: 14 }}>
+                  <p style={{ fontSize: 13 }}>💡 Consider our <strong>refurbished alternatives</strong> to save up to 45% and earn Green Credits!</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// VISION GRADER PAGE (Feature 2)
+// ============================================================
+function VisionPage({ addToast }) {
+  const [files, setFiles] = useState([]);
+  const [previews, setPreviews] = useState([]);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const fileRef = useRef();
+
+  const handleFiles = (accepted) => {
+    const valid = accepted.filter(f => f.type.startsWith('image/')).slice(0, 5);
+    setFiles(valid);
+    setPreviews(valid.map(f => URL.createObjectURL(f)));
+    setResult(null);
+  };
+
+  const onDrop = (e) => {
+    e.preventDefault();
+    setDragging(false);
+    handleFiles(Array.from(e.dataTransfer.files));
+  };
+
+  const grade = async () => {
+    if (!files.length) return;
+    setLoading(true);
+    
+    const formData = new FormData();
+    formData.append('product_id', 'demo_' + Date.now());
+    formData.append('category', 'electronics');
+    formData.append('return_reason', 'changed_mind');
+    formData.append('product_age_days', '365');
+    files.forEach(f => formData.append('images', f));
+    
+    const res = await fetch(`${API_BASE}/lifecycle/classify-with-images`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer demo-token' },
+      body: formData,
+    }).then(r => r.ok ? r.json() : null).catch(() => null);
+    
+    if (res) {
+      setResult(res);
+    } else {
+      // Mock result based on number of files
+      const seed = files.length;
+      const grades = ['A', 'A', 'B', 'C', 'D'];
+      const grade = grades[seed % 5];
+      const gradeMap = { A: { label: 'Like New', numeric: 4, confidence: 94.2, damage: 3.8 }, B: { label: 'Minor Wear', numeric: 3, confidence: 81.5, damage: 14.3 }, C: { label: 'Refurbishable', numeric: 2, confidence: 65.0, damage: 38.7 }, D: { label: 'Recycle', numeric: 1, confidence: 42.1, damage: 72.5 } };
+      const g = gradeMap[grade];
+      const actions = ['resell_certified', 'refurbish', 'exchange_marketplace'];
+      const action = actions[seed % 3];
+      setResult({
+        vision_grade: { grade, grade_label: g.label, grade_numeric: g.numeric, confidence: g.confidence, damage_score_pct: g.damage, accessories_detected: seed > 1 ? ['Box', 'Cable'] : [], recommendation: grade === 'A' ? 'Resell as Certified Refurbished' : 'Send for Repair', images_analyzed: files.length },
+        lifecycle_decision: { action, label: LIFECYCLE_ACTIONS[action]?.label || 'Refurbish', confidence: 87.3, green_credits_awarded: 35, all_scores: { 'Certified Refurbished': 45.2, 'Send for Refurbishment': 28.1, 'Exchange Marketplace': 15.3, 'Donate to NGO': 8.9, Recycle: 2.5 } },
+      });
+    }
+    setLoading(false);
+    addToast({ title: '👁️ Vision Grade Complete!', body: `${files.length} image${files.length > 1 ? 's' : ''} analyzed successfully.`, type: 'blue' });
+  };
+
+  const gradeColors = { A: 'var(--c-green)', B: 'var(--c-blue)', C: 'var(--c-amber)', D: 'var(--c-red)' };
+
+  return (
+    <div className="section container">
+      <div className="section-header">
+        <h2 className="section-title">👁️ AI Vision Quality Grading</h2>
+        <p className="section-sub">Upload product photos — AI grades condition in seconds using computer vision</p>
+      </div>
+
+      <div className="grid-2" style={{ gap: 24, alignItems: 'start' }}>
+        {/* Upload */}
+        <div>
+          <div className={`dropzone ${dragging ? 'active' : ''}`}
+               onDragOver={e => { e.preventDefault(); setDragging(true); }}
+               onDragLeave={() => setDragging(false)}
+               onDrop={onDrop}
+               onClick={() => fileRef.current?.click()}>
+            <input ref={fileRef} type="file" accept="image/*" multiple
+                   onChange={e => handleFiles(Array.from(e.target.files))} />
+            <div className="dropzone-icon">{dragging ? '📥' : '📸'}</div>
+            <div className="dropzone-text">{dragging ? 'Drop here!' : 'Drop product photos here'}</div>
+            <div className="dropzone-sub">Up to 5 images · PNG, JPG, WEBP</div>
+          </div>
+
+          {previews.length > 0 && (
+            <div className="preview-grid mt-4">
+              {previews.map((src, i) => (
+                <img key={i} src={src} alt="" className="preview-img" />
+              ))}
+            </div>
+          )}
+
+          <button className="btn btn-primary mt-4" style={{ width: '100%', justifyContent: 'center' }}
+                  onClick={grade} disabled={loading || !files.length}>
+            {loading ? '🤖 Analysing with AI…' : `🔍 Grade ${files.length || ''} Product${files.length !== 1 ? 's' : ''}`}
+          </button>
+
+          {/* Grade scale legend */}
+          <div className="card mt-4">
+            <div className="card-body">
+              <h4 style={{ marginBottom: 14, fontSize: 15 }}>Grade Scale</h4>
+              {[['A', 'Like New', 'No damage detected'],
+                ['B', 'Minor Wear', 'Small scratches/scuffs'],
+                ['C', 'Refurbishable', 'Visible damage (10–40%)'],
+                ['D', 'Recycle', 'Heavy damage or broken']
+               ].map(([g, label, desc]) => (
+                <div key={g} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: gradeColors[g], display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 16, color: '#fff', flexShrink: 0 }}>{g}</div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{label}</div>
+                    <div style={{ fontSize: 12, color: 'var(--c-text-muted)' }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Results */}
+        <div>
+          {loading && (
+            <div className="card" style={{ padding: 60, textAlign: 'center' }}>
+              <div className="spinner" />
+              <p style={{ marginTop: 20, color: 'var(--c-text-muted)', fontSize: 15 }}>Analyzing with AI Vision…</p>
+            </div>
+          )}
+          {!loading && !result && (
+            <div className="card" style={{ padding: 48, textAlign: 'center' }}>
+              <div style={{ fontSize: 56, marginBottom: 12 }}>🔬</div>
+              <p style={{ color: 'var(--c-text-muted)', lineHeight: 1.6 }}>Upload product images and click <strong>Grade</strong> to see AI analysis results here.</p>
+            </div>
+          )}
+          {result && (
+            <div>
+              {/* Vision Grade */}
+              <div className={`grade-result grade-${result.vision_grade.grade}`}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                  <div>
+                    <div className="grade-letter" style={{ color: gradeColors[result.vision_grade.grade] }}>
+                      {result.vision_grade.grade}
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 700 }}>{result.vision_grade.grade_label}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: gradeColors[result.vision_grade.grade] }}>
+                      {result.vision_grade.confidence}%
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--c-text-muted)' }}>confidence</div>
+                  </div>
+                </div>
+                
+                <div className="divider" />
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--c-text-muted)' }}>Damage Score</div>
+                    <div style={{ fontWeight: 800, fontSize: 18 }}>{result.vision_grade.damage_score_pct}%</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--c-text-muted)' }}>Images Analyzed</div>
+                    <div style={{ fontWeight: 800, fontSize: 18 }}>{result.vision_grade.images_analyzed}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--c-text-muted)' }}>Accessories</div>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>
+                      {result.vision_grade.accessories_detected?.length ? result.vision_grade.accessories_detected.join(', ') : 'None detected'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--c-text-muted)' }}>Recommendation</div>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{result.vision_grade.recommendation}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lifecycle Decision */}
+              <div className="decision-card mt-4">
+                <div className="decision-icon">
+                  {LIFECYCLE_ACTIONS[result.lifecycle_decision.action]?.icon || '♻️'}
+                </div>
+                <div className="decision-label">{result.lifecycle_decision.label}</div>
+                <div className="decision-sub">
+                  {LIFECYCLE_ACTIONS[result.lifecycle_decision.action]?.desc}
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, color: 'var(--c-text-muted)', marginBottom: 6 }}>
+                    Confidence: {result.lifecycle_decision.confidence}%
+                  </div>
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{ width: `${result.lifecycle_decision.confidence}%` }} />
+                  </div>
+                </div>
+                <div className="badge badge-green" style={{ fontSize: 14, padding: '8px 20px' }}>
+                  🌿 +{result.lifecycle_decision.green_credits_awarded} Green Credits
+                </div>
+              </div>
+
+              {/* All Scores */}
+              <div className="card mt-4">
+                <div className="card-body">
+                  <h4 style={{ marginBottom: 14 }}>All Decision Probabilities</h4>
+                  <div className="all-scores">
+                    {Object.entries(result.lifecycle_decision.all_scores || {}).map(([label, score]) => (
+                      <div key={label} className="score-row">
+                        <span className="score-label">{label}</span>
+                        <div className="score-bar">
+                          <div className="score-fill" style={{ width: `${score}%` }} />
+                        </div>
+                        <span className="score-val">{score}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// LIFECYCLE PAGE (Feature 1)
+// ============================================================
+function LifecyclePage({ addToast }) {
+  const [form, setForm] = useState({
+    product_id: 'DEMO001', category: 'electronics', return_reason: 'defective',
+    product_age_days: 180, return_frequency: 1, repair_cost_estimate: 2000,
+    seller_reputation: 4.2, accessories_present: true, days_since_purchase: 30,
+  });
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const CATEGORIES = ['electronics', 'clothing', 'baby_products', 'furniture', 'sports', 'books', 'gaming', 'toys'];
+  const REASONS = ['defective', 'wrong_item', 'size_issue', 'changed_mind', 'better_price', 'not_as_described'];
+
+  const classify = async () => {
+    setLoading(true);
+    const res = await api('/lifecycle/classify', { method: 'POST', body: JSON.stringify(form) });
+    if (res && res.action) {
+      setResult(res);
+    } else {
+      // Mock
+      const actions = Object.keys(LIFECYCLE_ACTIONS);
+      const idx = (form.product_age_days + form.return_frequency) % actions.length;
+      const action = actions[idx];
+      setResult({
+        action, label: LIFECYCLE_ACTIONS[action].label, confidence: 87.4,
+        green_credits_awarded: { resell_certified: 50, refurbish: 35, exchange_marketplace: 30, donate: 60, recycle: 25 }[action] || 30,
+        all_scores: { 'Certified Refurbished': 38.2, 'Send for Refurbishment': 24.5, 'Exchange Marketplace': 19.8, 'Donate to NGO': 12.3, Recycle: 5.2 },
+      });
+    }
+    setLoading(false);
+    addToast({ title: '🤖 Lifecycle Decision Made!', body: 'AI has determined the optimal product fate.', type: 'green' });
+  };
+
+  const field = (key, label, type = 'text', opts = null) => (
+    <div>
+      <label className="label">{label}</label>
+      {opts ? (
+        <select className="input" value={form[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}>
+          {opts.map(o => <option key={o} value={o}>{o.replace(/_/g,' ')}</option>)}
+        </select>
+      ) : type === 'checkbox' ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <input type="checkbox" checked={form[key]} style={{ width: 18, height: 18, cursor: 'pointer' }}
+                 onChange={e => setForm(p => ({ ...p, [key]: e.target.checked }))} />
+          <span style={{ fontSize: 14, color: 'var(--c-text-muted)' }}>Accessories included</span>
+        </div>
+      ) : (
+        <input className="input" type={type} value={form[key]}
+               onChange={e => setForm(p => ({ ...p, [key]: type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value }))} />
+      )}
+    </div>
+  );
+
+  return (
+    <div className="section container">
+      <div className="section-header">
+        <h2 className="section-title">🤖 AI Product Lifecycle Engine</h2>
+        <p className="section-sub">XGBoost-powered classifier decides the optimal fate for any returned product</p>
+      </div>
+
+      <div className="grid-2" style={{ gap: 24, alignItems: 'start' }}>
+        {/* Form */}
+        <div className="card">
+          <div className="card-body">
+            <h3 style={{ marginBottom: 20, fontSize: 18 }}>Product Details</h3>
+            <div className="lifecycle-form">
+              {field('product_id', 'Product ID')}
+              {field('category', 'Category', 'text', CATEGORIES)}
+              {field('return_reason', 'Return Reason', 'text', REASONS)}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {field('product_age_days', 'Product Age (days)', 'number')}
+                {field('return_frequency', 'Return Frequency', 'number')}
+                {field('repair_cost_estimate', 'Repair Cost Estimate (₹)', 'number')}
+                {field('seller_reputation', 'Seller Reputation (0-5)', 'number')}
+              </div>
+              {field('accessories_present', '', 'checkbox')}
+            </div>
+            <button className="btn btn-primary mt-4" style={{ width: '100%', justifyContent: 'center' }}
+                    onClick={classify} disabled={loading}>
+              {loading ? '🤖 Running AI Model…' : '🚀 Classify Product Lifecycle'}
+            </button>
+          </div>
+        </div>
+
+        {/* Result */}
+        <div>
+          {!result && (
+            <div className="card" style={{ padding: 48, textAlign: 'center' }}>
+              <div style={{ fontSize: 64, marginBottom: 16 }}>🤖</div>
+              <p style={{ color: 'var(--c-text-muted)', lineHeight: 1.6 }}>Fill in the product details and click <strong>Classify</strong> to get an AI-powered lifecycle decision.</p>
+              <div className="mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {Object.entries(LIFECYCLE_ACTIONS).map(([key, val]) => (
+                  <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--c-surface2)', borderRadius: 'var(--radius-sm)' }}>
+                    <span style={{ fontSize: 24 }}>{val.icon}</span>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 13 }}>{val.label}</div>
+                      <div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>{val.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {result && (
+            <div>
+              <div className="decision-card">
+                <div className="decision-icon">{LIFECYCLE_ACTIONS[result.action]?.icon || '♻️'}</div>
+                <div className="decision-label">{result.label}</div>
+                <div className="decision-sub">{LIFECYCLE_ACTIONS[result.action]?.desc}</div>
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, color: 'var(--c-text-muted)', marginBottom: 6 }}>Confidence: {result.confidence}%</div>
+                  <div className="progress-bar"><div className="progress-fill" style={{ width: `${result.confidence}%` }} /></div>
+                </div>
+                <div className="badge badge-green" style={{ fontSize: 15, padding: '10px 24px' }}>
+                  🌿 +{result.green_credits_awarded} Green Credits Awarded!
+                </div>
+              </div>
+              <div className="card mt-4">
+                <div className="card-body">
+                  <h4 style={{ marginBottom: 14 }}>All Decision Probabilities</h4>
+                  <div className="all-scores">
+                    {Object.entries(result.all_scores || {}).map(([label, score]) => (
+                      <div key={label} className="score-row">
+                        <span className="score-label">{label}</span>
+                        <div className="score-bar"><div className="score-fill" style={{ width: `${score}%` }} /></div>
+                        <span className="score-val">{score}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// REFURBISHED MARKET PAGE (Feature 3)
+// ============================================================
+function MarketPage({ addToast, updateCredits }) {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+  const [added, setAdded] = useState({});
+
+  useEffect(() => {
+    api('/recommendations/refurbished?n=12').then(r => {
+      if (r?.products?.length) {
+        setProducts(r.products);
+      } else {
+        setProducts(MOCK_REFURBISHED);
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  const handleAdd = async (p) => {
+    setAdded(prev => ({ ...prev, [p.product_id]: true }));
+    const r = await api('/credits/award/buy_refurbished', { method: 'POST' });
+    const credits = r?.awarded || 50;
+    updateCredits(credits);
+    addToast({ title: '✅ Added to Cart!', body: `${p.name} added · 🌿 +${credits} Green Credits earned!`, type: 'green' });
+  };
+
+  const CATS = ['all', 'electronics', 'toys', 'sports', 'books'];
+  const filtered = filter === 'all' ? products : products.filter(p => p.category === filter);
+
+  return (
+    <div className="section container">
+      <div className="section-header">
+        <h2 className="section-title">♻️ Refurbished Marketplace</h2>
+        <p className="section-sub">Transparent Health Scores you can trust. Every product certified by AI.</p>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+        {CATS.map(c => (
+          <button key={c} onClick={() => setFilter(c)}
+                  className={`btn ${filter === c ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '8px 16px', fontSize: 13 }}>
+            {c === 'all' ? 'All Categories' : c}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="grid-3">
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} className="card">
+              <div className="shimmer" style={{ height: 180 }} />
+              <div className="card-body">
+                <div className="shimmer" style={{ height: 16, marginBottom: 8 }} />
+                <div className="shimmer" style={{ height: 12, width: '60%' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid-3">
+          {filtered.map(p => (
+            <div key={p.product_id} className="product-card glow-card">
+              <div style={{ position: 'relative' }}>
+                <img src={p.image} alt={p.name} className="product-img"
+                     onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
+                />
+                <div className="product-img-placeholder" style={{ display: 'none' }}>📦</div>
+                <div style={{ position: 'absolute', top: 8, right: 8 }}>
+                  <span className="badge badge-green">♻️ Refurbished</span>
+                </div>
+                <div style={{ position: 'absolute', top: 8, left: 8 }}>
+                  <span style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4 }}>
+                    {p.trust_badge}
+                  </span>
+                </div>
+              </div>
+              <div className="product-body">
+                <div className="product-name">{p.name}</div>
+                <div className="health-score-row">
+                  <div className="health-score-val" style={{ color: healthColor(p.health_score) }}>
+                    {p.health_score}
+                  </div>
+                  <div className="health-score-sub">
+                    <div style={{ fontWeight: 700, fontSize: 12 }}>Health Score</div>
+                    <div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>out of 100</div>
+                  </div>
+                </div>
+                {/* Breakdown */}
+                {Object.entries(p.breakdown || {}).map(([key, val]) => (
+                  <div key={key} className="breakdown-bar">
+                    <div className="breakdown-label">
+                      <span>{key.replace(/_/g,' ')}</span>
+                      <span>{val}</span>
+                    </div>
+                    <div className="progress-bar" style={{ height: 4 }}>
+                      <div className="progress-fill" style={{ width: `${Math.min(val * 3, 100)}%`, background: `linear-gradient(90deg, ${healthColor(p.health_score)}, #4ade80)` }} />
+                    </div>
+                  </div>
+                ))}
+                <div className="price-row">
+                  <div>
+                    <span className="price-new">₹{fmt(p.refurb_price)}</span>
+                    <span className="price-old">₹{fmt(p.original_price)}</span>
+                  </div>
+                  <button className={`btn ${added[p.product_id] ? 'btn-secondary' : 'btn-orange'}`}
+                          style={{ padding: '8px 14px', fontSize: 12 }}
+                          onClick={() => handleAdd(p)} disabled={added[p.product_id]}>
+                    {added[p.product_id] ? '✓ Added' : 'Add to Cart'}
+                  </button>
+                </div>
+                {p.warranty_months_remaining > 0 && (
+                  <p style={{ fontSize: 12, color: 'var(--c-blue)', marginTop: 8 }}>
+                    🛡️ {p.warranty_months_remaining} months warranty remaining
+                  </p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// P2P MARKETPLACE PAGE (Feature 5)
+// ============================================================
+function P2PPage({ addToast, updateCredits }) {
+  const [form, setForm] = useState({ category: 'baby_products', max_budget: 8000, condition: 'any' });
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [sellerOptIn, setSellerOptIn] = useState({ listing_price: '', condition: 'good', description: '' });
+  const [optedIn, setOptedIn] = useState(false);
+
+  const CATEGORIES = ['baby_products', 'electronics', 'sports_gear', 'gaming', 'toys', 'books', 'clothing', 'furniture'];
+  const MOCK_SELLERS = [
+    { user_id: 'seller_01', product_name: 'Baby Stroller - Maxi Cosi', purchase_date: '2025-11-15', seller_info: { name: 'Priya Sharma', rating: 4.8, location: 'Mumbai' }, match_score: 91.2 },
+    { user_id: 'seller_02', product_name: 'Fisher-Price Baby Gym', purchase_date: '2025-12-01', seller_info: { name: 'Rahul Singh', rating: 4.2, location: 'Delhi' }, match_score: 78.5 },
+    { user_id: 'seller_03', product_name: 'Chicco Baby Carrier', purchase_date: '2025-10-20', seller_info: { name: 'Meera Patel', rating: 4.6, location: 'Bangalore' }, match_score: 65.8 },
+  ];
+
+  const searchP2P = async () => {
+    setLoading(true);
+    const res = await api('/p2p/request', { method: 'POST', body: JSON.stringify(form) });
+    if (res) {
+      setResult({ ...res, top_preview: res.top_preview?.length ? res.top_preview : MOCK_SELLERS });
+    } else {
+      setResult({ request_id: 'req_' + Date.now(), potential_matches: 8, top_preview: MOCK_SELLERS, message: 'Notifying 5 potential sellers!' });
+    }
+    setLoading(false);
+    addToast({ title: '🔔 Sellers Notified!', body: 'Potential sellers have been alerted about your request.', type: 'blue' });
+  };
+
+  const optIn = async () => {
+    if (!result || !sellerOptIn.listing_price) return;
+    const res = await api('/p2p/seller/optin', { method: 'POST', body: JSON.stringify({ request_id: result.request_id, ...sellerOptIn, listing_price: parseFloat(sellerOptIn.listing_price) }) });
+    setOptedIn(true);
+    const credits = 40;
+    updateCredits(credits);
+    addToast({ title: '🎉 Listed Successfully!', body: `+${credits} Green Credits earned for P2P sale!`, type: 'green' });
+  };
+
+  return (
+    <div className="section container">
+      <div className="section-header">
+        <h2 className="section-title">🤝 P2P Marketplace</h2>
+        <p className="section-sub">Connect directly with real owners. AI matches you with the best sellers in your area.</p>
+      </div>
+
+      <div className="grid-2" style={{ gap: 24, alignItems: 'start' }}>
+        {/* Buyer Request */}
+        <div>
+          <div className="card mb-4">
+            <div className="card-body">
+              <h3 style={{ marginBottom: 20, fontSize: 18 }}>👛 I Want to Buy (Used)</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div>
+                  <label className="label">Product Category</label>
+                  <select className="input" value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}>
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c.replace(/_/g,' ')}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Max Budget (₹)</label>
+                  <input className="input" type="number" value={form.max_budget}
+                         onChange={e => setForm(p => ({ ...p, max_budget: parseFloat(e.target.value) || 0 }))} />
+                </div>
+                <div>
+                  <label className="label">Condition Preference</label>
+                  <select className="input" value={form.condition} onChange={e => setForm(p => ({ ...p, condition: e.target.value }))}>
+                    {['any', 'like_new', 'good', 'fair'].map(c => <option key={c} value={c}>{c.replace(/_/g,' ')}</option>)}
+                  </select>
+                </div>
+                <button className="btn btn-primary" style={{ justifyContent: 'center' }}
+                        onClick={searchP2P} disabled={loading}>
+                  {loading ? '🔍 Finding Sellers…' : '🔍 Find Sellers Near Me'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Seller Opt-In Panel */}
+          <div className="card">
+            <div className="card-body">
+              <h3 style={{ marginBottom: 16, fontSize: 18 }}>💰 I Want to Sell (Opt In)</h3>
+              {!result ? (
+                <p style={{ fontSize: 14, color: 'var(--c-text-muted)' }}>Create a buyer request first, then sellers can opt in.</p>
+              ) : optedIn ? (
+                <div className="alert alert-success">
+                  <p style={{ fontWeight: 700, marginBottom: 4 }}>✅ Listing Created!</p>
+                  <p style={{ fontSize: 13, color: 'var(--c-text-muted)' }}>The buyer has been notified. You earned +40 Green Credits!</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div>
+                    <label className="label">Your Price (₹)</label>
+                    <input className="input" type="number" value={sellerOptIn.listing_price} placeholder={`Max budget: ₹${fmt(form.max_budget)}`}
+                           onChange={e => setSellerOptIn(p => ({ ...p, listing_price: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="label">Condition</label>
+                    <select className="input" value={sellerOptIn.condition} onChange={e => setSellerOptIn(p => ({ ...p, condition: e.target.value }))}>
+                      {['like_new', 'good', 'fair'].map(c => <option key={c} value={c}>{c.replace(/_/g,' ')}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Description</label>
+                    <textarea className="input" style={{ height: 72, resize: 'vertical' }} value={sellerOptIn.description} placeholder="Briefly describe the item condition..."
+                              onChange={e => setSellerOptIn(p => ({ ...p, description: e.target.value }))} />
+                  </div>
+                  <button className="btn btn-primary" style={{ justifyContent: 'center' }} onClick={optIn}
+                          disabled={!sellerOptIn.listing_price}>
+                    💰 Opt In as Seller
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Seller Matches */}
+        <div>
+          {!result && (
+            <div className="card" style={{ padding: 48, textAlign: 'center' }}>
+              <div style={{ fontSize: 56, marginBottom: 12 }}>🤝</div>
+              <p style={{ color: 'var(--c-text-muted)', lineHeight: 1.7 }}>
+                Submit a request to find real people who own this product in your city. AI ranks sellers by reliability and location.
+              </p>
+              <div className="mt-4 alert alert-info">
+                <p style={{ fontSize: 13 }}>💡 P2P transactions save up to 60% compared to new and earn both buyer & seller <strong>Green Credits</strong>!</p>
+              </div>
+            </div>
+          )}
+          {result && (
+            <div>
+              <div className="alert alert-success mb-4">
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>🔔 {result.message}</div>
+                <div style={{ fontSize: 13, color: 'var(--c-text-muted)' }}>
+                  {result.potential_matches} potential sellers found in your area
+                </div>
+              </div>
+              <h3 style={{ marginBottom: 14, fontSize: 16 }}>Top Seller Matches</h3>
+              {(result.top_preview || []).map((s, i) => (
+                <div key={i} className="seller-card mb-4">
+                  <div className="seller-avatar">
+                    {(s.seller_info?.name || 'U')[0]}
+                  </div>
+                  <div className="seller-info">
+                    <div className="seller-name">{s.seller_info?.name || 'Anonymous'}</div>
+                    <div className="seller-meta">
+                      ⭐ {s.seller_info?.rating?.toFixed(1) || '4.0'} · 📍 {s.seller_info?.location || 'India'}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--c-text-muted)', marginTop: 3 }}>
+                      {s.product_name}
+                    </div>
+                  </div>
+                  <div className="seller-score">
+                    <div className="match-score">{s.match_score?.toFixed(0) || 80}%</div>
+                    <div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>match</div>
+                  </div>
+                </div>
+              ))}
+              <div className="card">
+                <div className="card-body" style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 40, marginBottom: 10 }}>⚡</div>
+                  <p style={{ fontSize: 14, color: 'var(--c-text-muted)' }}>Sellers are being notified in real-time via SNS push notifications</p>
+                  <div className="mt-3" style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <span className="badge badge-green">+40 Credits on Sale</span>
+                    <span className="badge badge-blue">+30 Credits on Purchase</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// CREDITS PAGE (Feature 4)
+// ============================================================
+function CreditsPage({ credits, addToast, updateCredits }) {
+  const [balance, setBalance] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api('/credits/balance').then(r => {
+      setBalance(r || MOCK_BALANCE);
+      setLoading(false);
+    });
+  }, [credits]);
+
+  const earn = async (event, points) => {
+    const r = await api(`/credits/award/${event}`, { method: 'POST' });
+    const earned = r?.awarded || points;
+    updateCredits(earned);
+    addToast({ title: `🌿 +${earned} Green Credits!`, body: `Earned for: ${event.replace(/_/g,' ')}`, type: 'green' });
+  };
+
+  const redeem = async (event, cost) => {
+    if (credits < cost) {
+      addToast({ title: '❌ Insufficient Credits', body: `You need ${cost} credits. You have ${credits}.`, type: 'amber' });
+      return;
+    }
+    const r = await api(`/credits/redeem/${event}`, { method: 'POST' });
+    if (r?.coupon_code) {
+      updateCredits(-cost);
+      addToast({ title: '🎁 Coupon Generated!', body: `Code: ${r.coupon_code}`, type: 'blue' });
+    } else {
+      addToast({ title: '❌ Error', body: 'Could not redeem credits.', type: 'amber' });
+    }
+  };
+
+  const EARNING_RULES = [
+    { event: 'buy_refurbished',       label: 'Buy Refurbished Product', points: 50, icon: '♻️' },
+    { event: 'donate_product',        label: 'Donate a Product',        points: 60, icon: '🤝' },
+    { event: 'sell_unused_p2p',       label: 'Sell Unused via P2P',     points: 40, icon: '💰' },
+    { event: 'choose_recycle',        label: 'Choose to Recycle',       points: 25, icon: '🗑️' },
+    { event: 'return_avoided',        label: 'Avoid a Return',          points: 20, icon: '✅' },
+    { event: 'upload_product_images', label: 'Upload Product Images',   points: 10, icon: '📸' },
+    { event: 'complete_p2p_exchange', label: 'Complete P2P Exchange',   points: 30, icon: '🤜' },
+  ];
+
+  const REDEEM_OPTIONS = [
+    { label: '₹50 Amazon Coupon',    cost: 100, event: 'redeem_amazon_coupon_100', icon: '🛒' },
+    { label: 'Prime Month Discount', cost: 200, event: 'redeem_prime_discount',    icon: '⭐' },
+    { label: 'Plant a Tree',         cost: 150, event: 'redeem_carbon_offset',     icon: '🌳' },
+  ];
+
+  const tier = credits >= 500 ? '🌳 Eco Champion' : credits >= 200 ? '🌿 Green Member' : '🌱 Getting Started';
+
+  return (
+    <div className="section container">
+      <div className="section-header">
+        <h2 className="section-title">🌿 Green Credits System</h2>
+        <p className="section-sub">Earn credits for every sustainable action. Redeem for Amazon rewards.</p>
+      </div>
+
+      {/* Balance Hero */}
+      <div className="credits-hero mb-6">
+        <div className="credits-amount">{credits}</div>
+        <div className="credits-tier">{tier}</div>
+        <div className="credits-inr">≈ ₹{(credits * 0.5).toFixed(0)} coupon value · 1 Credit = ₹0.50</div>
+        <div style={{ marginTop: 24, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {[200, 500].map(t => (
+            <div key={t} style={{ fontSize: 13, color: 'var(--c-text-muted)' }}>
+              {credits < t ? (
+                <span>🎯 {t - credits} credits to reach {t >= 500 ? '🌳 Eco Champion' : '🌿 Green Member'}</span>
+              ) : null}
+            </div>
+          ))}
+        </div>
+        {/* Progress to next tier */}
+        {credits < 500 && (
+          <div style={{ maxWidth: 400, margin: '20px auto 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--c-text-muted)', marginBottom: 6 }}>
+              <span>Progress to {credits < 200 ? '🌿 Green Member' : '🌳 Eco Champion'}</span>
+              <span>{credits < 200 ? Math.round(credits/200*100) : Math.round(credits/500*100)}%</span>
+            </div>
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${credits < 200 ? credits/200*100 : credits/500*100}%` }} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="grid-2" style={{ gap: 24, alignItems: 'start' }}>
+        {/* Earn */}
+        <div>
+          <h3 style={{ marginBottom: 16 }}>💚 Ways to Earn</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {EARNING_RULES.map(r => (
+              <div key={r.event} className="credit-rule">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 24 }}>{r.icon}</span>
+                  <div>
+                    <div className="credit-rule-label">{r.label}</div>
+                    <div className="credit-rule-sub">+{r.points} Green Credits</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div className="credit-points">+{r.points}</div>
+                  <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }}
+                          onClick={() => earn(r.event, r.points)}>
+                    Earn
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Redeem + History */}
+        <div>
+          <h3 style={{ marginBottom: 16 }}>🎁 Redeem Credits</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+            {REDEEM_OPTIONS.map(opt => (
+              <div key={opt.event} className="redeem-card" onClick={() => redeem(opt.event, opt.cost)}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>{opt.icon}</div>
+                <h4>{opt.label}</h4>
+                <div className="redeem-cost">{opt.cost} Credits</div>
+                <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', fontSize: 13 }}
+                        disabled={credits < opt.cost}>
+                  {credits >= opt.cost ? 'Redeem Now' : `Need ${opt.cost - credits} more`}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* History */}
+          <div className="card">
+            <div className="card-body">
+              <h4 style={{ marginBottom: 14 }}>Recent Activity</h4>
+              {(balance?.history || MOCK_BALANCE.history).slice(0, 6).map((h, i) => (
+                <div key={i} className="history-item">
+                  <div>
+                    <div className="history-event">{h.event?.replace(/_/g,' ') || 'Action'}</div>
+                  </div>
+                  <div className={`history-points ${h.points > 0 ? 'earn' : 'spend'}`}>
+                    {h.points > 0 ? '+' : ''}{h.points}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// DASHBOARD PAGE (Feature 7)
+// ============================================================
+function DashboardPage({ credits }) {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api('/dashboard/sustainability').then(r => {
+      if (r && r.impact_level) {
+        setStats({ ...r, green_credits: credits });
+      } else {
+        setStats({ ...MOCK_DASHBOARD, green_credits: credits });
+      }
+      setLoading(false);
+    });
+  }, [credits]);
+
+  if (loading) {
+    return (
+      <div className="section container" style={{ textAlign: 'center', padding: 80 }}>
+        <div style={{ fontSize: 56, animation: 'spin 2s linear infinite' }}>🌿</div>
+        <p style={{ marginTop: 16, color: 'var(--c-text-muted)' }}>Loading your impact…</p>
+      </div>
+    );
+  }
+
+  const STAT_CARDS = [
+    { icon: '📦', label: 'Products Saved', value: stats.products_saved, sub: 'from landfill', color: '#22c55e' },
+    { icon: '🌫️', label: 'CO₂ Saved',      value: `${stats.co2_saved_kg} kg`, sub: `≈ ${stats.trees_equivalent} trees`, color: '#3b82f6' },
+    { icon: '🤝', label: 'Items Donated',  value: stats.items_donated, sub: 'to NGOs', color: '#8b5cf6' },
+    { icon: '🌿', label: 'Green Credits',  value: stats.green_credits, sub: `≈ ₹${(stats.green_credits * 0.5).toFixed(0)}`, color: '#22c55e' },
+    { icon: '🔄', label: 'Returns Avoided', value: stats.returns_avoided, sub: 'prevented', color: '#f59e0b' },
+    { icon: '♻️', label: 'Recycled',        value: stats.items_recycled, sub: 'items', color: '#94a3b8' },
+    { icon: '🤜🤛', label: 'P2P Exchanges', value: stats.p2p_exchanges, sub: 'completed', color: '#14b8a6' },
+    { icon: '🛒', label: 'Refurb Bought',  value: stats.refurb_bought, sub: 'items', color: '#06b6d4' },
+  ];
+
+  const REDEEM_OPTIONS = [
+    { label: '₹50 Amazon Coupon', cost: 100, icon: '🛒' },
+    { label: 'Prime Month Discount', cost: 200, icon: '⭐' },
+    { label: 'Plant a Tree 🌳', cost: 150, icon: '🌳' },
+  ];
+
+  return (
+    <div className="section container">
+      {/* Impact Hero */}
+      <div className="impact-hero mb-6">
+        <span className="impact-emoji">{stats.impact_level.split(' ')[0]}</span>
+        <h1 className="impact-title">{stats.impact_level}</h1>
+        <p className="impact-sub">Your sustainable shopping impact with ReLife AI</p>
+        <div style={{ marginTop: 24, display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ background: 'rgba(34,197,94,0.2)', borderRadius: 12, padding: '12px 24px', textAlign: 'center' }}>
+            <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--c-green)' }}>{stats.co2_saved_kg} kg</div>
+            <div style={{ fontSize: 13, color: 'var(--c-text-muted)' }}>CO₂ Saved</div>
+          </div>
+          <div style={{ background: 'rgba(59,130,246,0.2)', borderRadius: 12, padding: '12px 24px', textAlign: 'center' }}>
+            <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--c-blue)' }}>{stats.trees_equivalent}</div>
+            <div style={{ fontSize: 13, color: 'var(--c-text-muted)' }}>Trees Equivalent</div>
+          </div>
+          <div style={{ background: 'rgba(139,92,246,0.2)', borderRadius: 12, padding: '12px 24px', textAlign: 'center' }}>
+            <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--c-purple)' }}>{stats.products_saved}</div>
+            <div style={{ fontSize: 13, color: 'var(--c-text-muted)' }}>Products Saved</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid-4 mb-6">
+        {STAT_CARDS.map(s => (
+          <div key={s.label} className="stat-card">
+            <span className="stat-card-icon">{s.icon}</span>
+            <div className="stat-card-val" style={{ color: s.color }}>{s.value}</div>
+            <div className="stat-card-label">{s.label}</div>
+            <div className="stat-card-sub">{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Redeem Section */}
+      <div className="card">
+        <div className="card-body">
+          <h2 style={{ marginBottom: 20, fontSize: 22 }}>🎁 Redeem Your Green Credits</h2>
+          <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontSize: 36, fontWeight: 900, color: 'var(--c-green)' }}>{stats.green_credits}</div>
+            <div>
+              <div style={{ fontWeight: 700 }}>Credits Available</div>
+              <div style={{ fontSize: 13, color: 'var(--c-text-muted)' }}>≈ ₹{(stats.green_credits * 0.5).toFixed(0)} value</div>
+            </div>
+          </div>
+          <div className="grid-3" style={{ gap: 16 }}>
+            {REDEEM_OPTIONS.map(opt => (
+              <div key={opt.label} className="redeem-card">
+                <div style={{ fontSize: 36, marginBottom: 10 }}>{opt.icon}</div>
+                <h4 style={{ marginBottom: 8 }}>{opt.label}</h4>
+                <div className="redeem-cost">{opt.cost} Credits</div>
+                <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', fontSize: 13 }}
+                        disabled={stats.green_credits < opt.cost}>
+                  {stats.green_credits >= opt.cost ? 'Redeem' : `Need ${opt.cost - stats.green_credits} more`}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// MAIN APP
+// ============================================================
+function App() {
+  const [page, setPage] = useState('home');
+  const [credits, setCredits] = useState(350);
+  const [toasts, setToasts] = useState([]);
+
+  const addToast = useCallback((t) => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { ...t, id }]);
+    setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), 4000);
+  }, []);
+
+  const dismissToast = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  const updateCredits = useCallback((delta) => {
+    setCredits(prev => Math.max(0, prev + delta));
+    if (delta > 0) {
+      addToast({ title: `🌿 +${delta} Green Credits!`, body: 'Your eco score just went up!', type: 'green' });
+    }
+  }, [addToast]);
+
+  const PAGE_COMPONENTS = {
+    home:      <HomePage setPage={setPage} />,
+    cart:      <CartPage addToast={addToast} />,
+    vision:    <VisionPage addToast={addToast} />,
+    lifecycle: <LifecyclePage addToast={addToast} />,
+    market:    <MarketPage addToast={addToast} updateCredits={updateCredits} />,
+    p2p:       <P2PPage addToast={addToast} updateCredits={updateCredits} />,
+    credits:   <CreditsPage credits={credits} addToast={addToast} updateCredits={updateCredits} />,
+    dashboard: <DashboardPage credits={credits} />,
+  };
+
+  return (
+    <div>
+      <Nav page={page} setPage={setPage} credits={credits} />
+      <ToastSystem toasts={toasts} dismiss={dismissToast} />
+      <main style={{ minHeight: 'calc(100vh - 64px)' }}>
+        {PAGE_COMPONENTS[page]}
+      </main>
+      <footer style={{ borderTop: '1px solid var(--c-border)', padding: '24px', textAlign: 'center', color: 'var(--c-text-dim)', fontSize: 13, marginTop: 40 }}>
+        <p>♻️ ReLife AI · Built for the <strong style={{ color: 'var(--c-orange)' }}>Amazon Sustainable Commerce Hackathon</strong></p>
+        <p style={{ marginTop: 6 }}>React + FastAPI + XGBoost + AWS Services · 100% Free Tier Hosted</p>
+      </footer>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
