@@ -1678,10 +1678,15 @@ function P2PPage({ addToast, updateCredits }) {
 
     // Send product images as first chat message if provided
     if (sellerImages.length > 0) {
-      const imageNames = sellerImages.map(f => f.name).join(', ');
+      const imageDataUrls = await Promise.all(sellerImages.map(f => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(f);
+      })));
+      const imgTags = imageDataUrls.map(src => `[img]${src}[/img]`).join('\n');
       await api('/p2p/chat/send', {
         method: 'POST',
-        body: JSON.stringify({ listing_id: listingId, message: `📸 Product photos attached: ${imageNames}\n\nCondition: ${sellerOptIn.condition}\n${sellerOptIn.description || ''}` })
+        body: JSON.stringify({ listing_id: listingId, message: `📸 Product photos:\n${imgTags}\n\nCondition: ${sellerOptIn.condition}\n${sellerOptIn.description || ''}` })
       });
     }
 
@@ -1988,6 +1993,20 @@ function ChatPanel({ listingId, onClose }) {
 
   const currentUserId = USERS_LIST.find(u => u.token === CURRENT_USER)?.id || CURRENT_USER;
 
+  const renderChatMessage = (text) => {
+    if (!text) return null;
+    // Split by [img]...[/img] tags and render images inline
+    const parts = text.split(/\[img\](.*?)\[\/img\]/g);
+    return parts.map((part, idx) => {
+      if (idx % 2 === 1) {
+        // This is an image data URL
+        return <img key={idx} src={part} alt="Product" style={{ maxWidth: '100%', borderRadius: 8, marginTop: 6, marginBottom: 6 }} />;
+      }
+      // Regular text — preserve newlines
+      return part.split('\n').map((line, li) => <span key={`${idx}-${li}`}>{line}{li < part.split('\n').length - 1 && <br/>}</span>);
+    });
+  };
+
   const formatTime = (ts) => {
     if (!ts) return '';
     try {
@@ -2021,7 +2040,7 @@ function ChatPanel({ listingId, onClose }) {
           return (
             <div key={i} className={`chat-msg ${isSelf ? 'chat-msg-self' : 'chat-msg-other'}`}>
               {!isSelf && <div className="chat-msg-name">{m.sender_name}</div>}
-              <div>{m.message}</div>
+              <div>{renderChatMessage(m.message)}</div>
               <div className="chat-msg-time">{formatTime(m.timestamp)}</div>
             </div>
           );
