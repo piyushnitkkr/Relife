@@ -14,8 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy server code
 COPY . .
 
-# Create ml/models directory for model bootstrap
-RUN mkdir -p ml/models
+# Create directories
+RUN mkdir -p ml/models static
 
 EXPOSE 8000
 

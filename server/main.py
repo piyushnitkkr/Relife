@@ -5,6 +5,9 @@ Deployable on AWS EC2 (t2.micro Free Tier)
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pathlib import Path
 from config import settings
 from routers import (lifecycle, vision, recommendations,
                      credits, p2p, cart, dashboard, notifications)
@@ -60,6 +63,10 @@ def health():
 
 @app.get("/")
 def root():
+    """Serve the React frontend."""
+    frontend_path = Path(__file__).parent / "static" / "index.html"
+    if frontend_path.exists():
+        return FileResponse(frontend_path)
     return {"message": "Welcome to ReLife AI 🌿 — Visit /docs for the API reference"}
 
 
