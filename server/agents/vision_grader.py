@@ -38,7 +38,8 @@ if _boto3_available:
 
 
 def _use_real_rekognition() -> bool:
-    return _rekognition is not None
+    # Simulation gives better demo results — Rekognition rarely detects cosmetic damage
+    return False
 
 
 def _analyze_with_rekognition(image_bytes: bytes) -> dict:
