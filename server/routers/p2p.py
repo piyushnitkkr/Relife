@@ -197,6 +197,22 @@ async def get_chat_history(listing_id: str, user=Depends(get_current_user)):
     return {"messages": messages}
 
 
+@router.delete("/chat/{listing_id}")
+async def delete_chat(listing_id: str, user=Depends(get_current_user)):
+    """Delete all chat messages for a listing."""
+    db.p2p_chats.delete_many({"listing_id": listing_id})
+    return {"status": "deleted"}
+
+
+@router.delete("/request/{request_id}")
+async def delete_request(request_id: str, user=Depends(get_current_user)):
+    """Delete a P2P request and associated notifications/listings."""
+    db.p2p_requests.delete_many({"_id": request_id, "buyer_id": user["user_id"]})
+    db.p2p_listings.delete_many({"request_id": request_id})
+    db.notifications.delete_many({"request_id": request_id})
+    return {"status": "deleted"}
+
+
 @router.websocket("/ws/chat/{listing_id}/{token}")
 async def ws_chat(ws: WebSocket, listing_id: str, token: str):
     """WebSocket endpoint for real-time P2P chat."""

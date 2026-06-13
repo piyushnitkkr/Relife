@@ -1718,10 +1718,18 @@ function P2PPage({ addToast, updateCredits }) {
         <div className="mb-6">
           <h3 style={{ fontSize: 16, marginBottom: 12 }}>📋 My Active Requests</h3>
           {myRequests.slice(0, 3).map((r, i) => (
-            <div key={i} className="alert alert-info mb-2">
+            <div key={i} className="alert alert-info mb-2" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <p style={{ fontWeight: 600, fontSize: 13 }}>
                 {r.category?.replace(/_/g, ' ')} · Budget: ₹{r.max_budget?.toLocaleString()} · Status: {r.status}
               </p>
+              <button className="btn btn-danger" style={{ padding: '4px 10px', fontSize: 11 }}
+                      onClick={async () => {
+                        await api(`/p2p/request/${r.request_id || r._id}`, { method: 'DELETE' });
+                        setMyRequests(prev => prev.filter((_, idx) => idx !== i));
+                        addToast({ title: '🗑 Request Deleted', body: 'P2P request removed.', type: 'amber' });
+                      }}>
+                ✕ Delete
+              </button>
             </div>
           ))}
         </div>
@@ -1959,7 +1967,15 @@ function ChatPanel({ listingId, onClose }) {
     <div className="chat-panel">
       <div className="chat-header">
         <h4 style={{ fontSize: 15, fontWeight: 700 }}>💬 P2P Chat</h4>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--c-text-muted)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button onClick={async () => {
+            if (confirm('End chat and delete all messages?')) {
+              await api(`/p2p/chat/${listingId}`, { method: 'DELETE' });
+              onClose();
+            }
+          }} style={{ background: 'none', border: 'none', color: 'var(--c-red)', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}>🗑 End Chat</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--c-text-muted)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+        </div>
       </div>
       <div className="chat-messages">
         {messages.length === 0 && (

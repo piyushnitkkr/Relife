@@ -258,6 +258,13 @@ class _Collection:
         self._data.append(doc.copy())
         return doc["_id"]
 
+    def insert_many(self, docs: list):
+        for doc in docs:
+            self.insert_one(doc)
+
+    def delete_many(self, query: dict):
+        self._data = [r for r in self._data if not self._matches(r, query)]
+
     def update_one(self, query: dict, update: dict):
         for r in self._data:
             if self._matches(r, query):
