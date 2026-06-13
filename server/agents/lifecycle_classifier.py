@@ -1,11 +1,23 @@
 """
-Lifecycle Classifier — XGBoost-backed product fate engine.
-Bootstraps with synthetic training data if no saved model exists.
+Lifecycle Classifier — ML + Gemini-powered product fate engine.
+Uses GradientBoosting as base, with smart overrides and optional Gemini reasoning.
 """
 import pickle
 import numpy as np
 from pathlib import Path
+import json
 import os
+from config import settings
+
+try:
+    import google.generativeai as genai
+    if settings.GEMINI_API_KEY:
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        _gemini = genai.GenerativeModel("gemini-3.1-flash-lite")
+    else:
+        _gemini = None
+except Exception:
+    _gemini = None
 
 MODEL_PATH = Path(__file__).parent.parent / "ml" / "models" / "lifecycle_xgb.pkl"
 
@@ -99,6 +111,87 @@ _model = _load_or_bootstrap_model()
 
 
 def classify_lifecycle(data: dict) -> dict:
+    # Try Gemini-powered classification first
+    if _gemini:
+        try:
+            return _classify_with_gemini(data)
+        except Exception as e:
+            print(f"Gemini lifecycle failed: {e}, falling back to ML")
+
+    # Fallback: ML model + smart overrides
+    return _classify_with_ml(data)
+
+
+def _classify_with_gemini(data: dict) -> dict:
+    """Use Gemini 3.1 Flash Lite to reason about product lifecycle."""
+    prompt = f"""You are a product lifecycle decision AI for a refurbished marketplace.
+
+Given this returned product data, decide what should happen to it.
+Return ONLY valid JSON (no markdown, no backticks):
+
+{{
+  "action": "<one of: resell_certified, refurbish, exchange_marketplace, donate, recycle>",
+  "label": "<human readable label>",
+  "confidence": <number 60-99>,
+  "reasoning": "<one sentence explaining why>"
+}}
+
+Decision rules:
+- resell_certified: Product is like new, minimal age, changed mind return
+- refurbish: Minor issues, repair cost is reasonable (<30% of product value)
+- exchange_marketplace: Size/fit issues, clothing, still functional
+- donate: Old but functional, low demand, or baby products outgrown
+- recycle: Broken, very old, repair cost exceeds value, defective electronics >2 years old
+
+Product data:
+- Category: {data.get('category', 'other')}
+- Return reason: {data.get('return_reason', 'unknown')}
+- Product age: {data.get('product_age_days', 0)} days
+- Repair cost estimate: ₹{data.get('repair_cost_estimate', 0)}
+- Return frequency: {data.get('return_frequency', 0)} times
+- Seller reputation: {data.get('seller_reputation', 4.0)}/5
+- Accessories present: {data.get('accessories_present', False)}
+- Days since purchase: {data.get('days_since_purchase', 0)}
+- Product name: {data.get('product_name', 'Unknown')}"""
+
+    response = _gemini.generate_content(
+        prompt,
+        generation_config=genai.GenerationConfig(temperature=0.1, max_output_tokens=200),
+    )
+    text = response.text.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1]
+    if text.endswith("```"):
+        text = text.rsplit("```", 1)[0]
+    text = text.strip()
+
+    result = json.loads(text)
+    action = result.get("action", "refurbish")
+    confidence = min(99, max(60, result.get("confidence", 75)))
+
+    # Map action to label
+    action_labels = {
+        "resell_certified": "Certified Refurbished",
+        "refurbish": "Send for Refurbishment",
+        "exchange_marketplace": "Exchange Marketplace",
+        "donate": "Donate to NGO",
+        "recycle": "Recycle",
+    }
+    label = result.get("label", action_labels.get(action, action))
+
+    return {
+        "action": action,
+        "label": label,
+        "confidence": confidence,
+        "reasoning": result.get("reasoning", ""),
+        "all_scores": {action_labels[a]: (confidence if a == action else round((100 - confidence) / 4, 1)) for a in action_labels},
+        "green_credits_awarded": _credits_for_action(action),
+        "engine": "gemini-3.1-flash-lite",
+    }
+
+
+def _classify_with_ml(data: dict) -> dict:
+    """Fallback ML classification with smart overrides."""
     features = build_feature_vector(data)
     prediction = int(_model.predict(features)[0])
     probabilities = _model.predict_proba(features)[0]
@@ -111,42 +204,39 @@ def classify_lifecycle(data: dict) -> dict:
     return_reason = data.get("return_reason", "")
     product_age = data.get("product_age_days", 0)
 
-    # High repair cost → recycle or donate (not worth refurbishing)
     if repair_cost > 3000 and result["action"] in ("refurbish", "resell_certified"):
         if repair_cost > 5000:
-            prediction = 4  # recycle
+            prediction = 4
             confidence = 82.0
         else:
-            prediction = 3  # donate
+            prediction = 3
             confidence = 75.0
         result = LABEL_MAP[prediction]
 
-    # Very old product (>3 years) + defective → recycle
     if product_age > 1095 and return_reason == "defective":
         if result["action"] in ("resell_certified", "refurbish"):
-            prediction = 4  # recycle
+            prediction = 4
             confidence = 78.0
             result = LABEL_MAP[prediction]
 
-    # Changed mind + like new (low age) → resell
     if return_reason == "changed_mind" and product_age < 30:
-        prediction = 0  # resell certified
+        prediction = 0
         confidence = 91.0
         result = LABEL_MAP[prediction]
 
-    # Size issue on clothing → exchange marketplace
     if return_reason == "size_issue" and category in ("clothing", "shoes"):
-        prediction = 2  # exchange
+        prediction = 2
         confidence = 88.0
         result = LABEL_MAP[prediction]
 
     return {
-        "action":                result["action"],
-        "label":                 result["label"],
-        "confidence":            confidence,
-        "all_scores":            {
+        "action": result["action"],
+        "label": result["label"],
+        "confidence": confidence,
+        "all_scores": {
             LABEL_MAP[i]["label"]: round(float(p) * 100, 1)
             for i, p in enumerate(probabilities)
         },
         "green_credits_awarded": _credits_for_action(result["action"]),
+        "engine": "ml-gradient-boosting",
     }
