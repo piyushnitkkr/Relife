@@ -131,13 +131,27 @@ async def my_requests(user=Depends(get_current_user)):
 
 
 async def _notify_sellers(sellers, request_id, req):
+    # Always notify demo sellers for hackathon demo
+    demo_sellers = ["seller_01", "seller_02"]
+    notified = set()
+
+    for uid in demo_sellers:
+        db.notifications.insert_one({
+            "user_id": uid, "type": "p2p_sell_opportunity",
+            "title": "💰 Someone wants to buy your product!",
+            "body": f"Budget: ₹{req.max_budget:,.0f} for {req.category.replace('_', ' ')}.",
+            "request_id": request_id, "read": False,
+            "created_at": datetime.utcnow(),
+        })
+        notified.add(uid)
+
     for s in sellers:
         uid = s.get("user_id")
-        if uid:
+        if uid and uid not in notified:
             db.notifications.insert_one({
                 "user_id": uid, "type": "p2p_sell_opportunity",
                 "title": "💰 Someone wants to buy your product!",
-                "body":  f"Budget: ₹{req.max_budget:,.0f} for {req.category}.",
+                "body": f"Budget: ₹{req.max_budget:,.0f} for {req.category.replace('_', ' ')}.",
                 "request_id": request_id, "read": False,
                 "created_at": datetime.utcnow(),
             })
