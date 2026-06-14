@@ -115,7 +115,7 @@ All 7 features fully functional with real AI (Gemini), real database (MongoDB At
 | Frontend | React 18 + Babel (single HTML) | Zero build step, instant deploy, CDN-hosted |
 | Backend | FastAPI (Python 3.11) | Async, fast, auto-docs, ML-friendly |
 | AI - Vision | Google Gemini 2.5 Flash | Best-in-class image understanding, free tier |
-| AI - Reasoning | Google Gemini 3.1 Flash Lite | Fast text reasoning for lifecycle decisions |
+| AI - Reasoning | Groq + Llama 4 Scout 17B | Ultra-fast inference (~200ms), 1000 RPD free, multi-factor reasoning |
 | ML Models | Scikit-learn (GradientBoosting + RandomForest) | Lightweight, trains on synthetic data, runs on EC2 |
 | Database | MongoDB Atlas (Free M0) | Flexible schema for diverse product/order data |
 | Hosting | AWS EC2 (Docker) + Vercel | EC2 for compute, Vercel for CDN + proxy |
@@ -123,7 +123,7 @@ All 7 features fully functional with real AI (Gemini), real database (MongoDB At
 
 ### Key Algorithms & Complexity
 
-1. **Multi-class Lifecycle Classification:** Gradient Boosting Classifier (9 features → 5 classes) + Gemini LLM reasoning with strict business rules. Combines statistical ML with LLM common sense.
+1. **Multi-class Lifecycle Classification:** Groq Llama 4 Scout (17B, 16 experts MoE) with structured decision matrix considering 9 input parameters with explicit weighting (repair cost 25%, product age 25%, return reason 20%, category/seller 15%, accessories/history 15%). Falls back to GradientBoosting ML model with business rule overrides.
 
 2. **Vision-Language Grading:** Gemini 2.5 Flash analyzes raw product images with a structured prompt that enforces A/B/C/D grading scale — detecting damage, accessories, and packaging quality simultaneously.
 

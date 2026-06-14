@@ -22,7 +22,7 @@ amazon/
 │   ├── seed.py             # Generates 200 users + 1000 orders in MongoDB
 │   │
 │   ├── agents/             # AI/ML Decision Engines
-│   │   ├── lifecycle_classifier.py   # Gemini 3.1 Flash Lite + GradientBoosting
+│   │   ├── lifecycle_classifier.py   # Groq Llama 4 Scout + GradientBoosting
 │   │   ├── vision_grader.py          # Gemini 2.5 Flash (image analysis)
 │   │   ├── return_predictor.py       # RandomForest (return risk)
 │   │   ├── recommendation_engine.py  # Health Score algorithm
@@ -62,19 +62,31 @@ amazon/
 **File:** `server/agents/lifecycle_classifier.py`
 
 **Flow:**
-1. User submits product details (category, return reason, age, repair cost)
-2. Gemini 3.1 Flash Lite receives a structured prompt with strict decision rules
-3. Gemini returns JSON: `{action, scores for all 5 options, reasoning}`
-4. If Gemini fails → falls back to GradientBoosting ML model with business rule overrides
-5. Green credits are awarded based on the decision
+1. User submits product details (name, category, return reason, age, repair cost, frequency, seller reputation, accessories, days since purchase)
+2. Groq API (Llama 4 Scout 17B) receives a structured prompt with a decision matrix and explicit weighting
+3. Model considers ALL 9 parameters with weighted importance:
+   - Repair cost vs product value: 25%
+   - Product age and condition: 25%
+   - Return reason: 20%
+   - Category demand and seller reputation: 15%
+   - Accessories and return history: 15%
+4. Returns JSON: `{decision, scores for all 5 options (summing to 100), reasoning}`
+5. If Groq fails → falls back to GradientBoosting ML model with business rule overrides
+6. Green credits are awarded based on the decision
 
-**Key Logic:**
-- Repair cost > ₹5000 → Always "Recycle"
-- Changed mind + <30 days → Always "Resell Certified"
-- Size issue + clothing → Always "Exchange Marketplace"
-- Baby products + old → "Donate to NGO"
+**Decision Matrix (what the AI considers):**
+| Scenario | Decision |
+|----------|----------|
+| New (<30 days), changed mind, no damage | Resell Certified |
+| Minor defect, repair <₹2000, good seller | Refurbish |
+| Clothing + size issue, any age | Exchange Marketplace |
+| Old (>1 year), baby/kids, functional | Donate to NGO |
+| Repair >₹3000, old (>2 years), defective | Recycle |
+| Very high repair (>₹5000), any category | Recycle |
+| Good condition, 1-6 months old, accessories present | Resell Certified |
 
 **API:** `POST /lifecycle/classify`
+**AI Engine:** Groq (Llama 4 Scout 17B-16E) — 30 RPM, 1000 RPD free
 
 ---
 
@@ -83,10 +95,10 @@ amazon/
 **File:** `server/agents/vision_grader.py`
 
 **Flow:**
-1. User uploads 1-5 product photos
-2. Images are sent as base64 to Gemini 2.5 Flash with a grading prompt
+1. User uploads 1-3 product photos
+2. Images are sent as base64 to Google Gemini 2.5 Flash with a structured grading prompt
 3. Gemini analyzes visible damage, accessories, and overall condition
-4. Returns grade (A/B/C/D), confidence %, damage types, accessories detected
+4. Returns grade (A/B/C/D), confidence %, damage types, accessories detected, condition notes
 5. If Gemini unavailable → falls back to deterministic simulation
 
 **Grading Scale:**
@@ -96,6 +108,7 @@ amazon/
 - D (60-100%): Recycle → End of Life
 
 **API:** `POST /vision/grade`
+**AI Engine:** Google Gemini 2.5 Flash — real image understanding
 
 ---
 
