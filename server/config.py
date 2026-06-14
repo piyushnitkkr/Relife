@@ -21,6 +21,9 @@ class Settings:
     # Gemini AI
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
+    # Groq AI (lifecycle)
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+
     # App
     APP_ENV: str = os.getenv("APP_ENV", "development")
     DEBUG: bool = os.getenv("DEBUG", "true").lower() == "true"

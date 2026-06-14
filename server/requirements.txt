@@ -13,5 +13,8 @@ httpx==0.27.0
 # MongoDB
 pymongo[srv]==4.7.3
 
-# Gemini AI (vision + lifecycle)
+# Gemini AI (vision grading)
 google-generativeai==0.8.3
+
+# Groq AI (lifecycle reasoning)
+groq==0.9.0

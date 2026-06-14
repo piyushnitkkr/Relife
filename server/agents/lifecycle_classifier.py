@@ -1,5 +1,5 @@
 """
-Lifecycle Classifier — Gemini AI + ML fallback.
+Lifecycle Classifier — Groq (Llama 4 Scout) + ML fallback.
 Decides product fate: resell / refurbish / exchange / donate / recycle.
 """
 import pickle
@@ -10,14 +10,13 @@ from pathlib import Path
 from config import settings
 
 try:
-    import google.generativeai as genai
-    if settings.GEMINI_API_KEY:
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        _gemini = genai.GenerativeModel("gemini-3.1-flash-lite")
+    from groq import Groq
+    if settings.GROQ_API_KEY:
+        _groq = Groq(api_key=settings.GROQ_API_KEY)
     else:
-        _gemini = None
+        _groq = None
 except Exception:
-    _gemini = None
+    _groq = None
 
 MODEL_PATH = Path(__file__).parent.parent / "ml" / "models" / "lifecycle_xgb.pkl"
 
@@ -96,18 +95,18 @@ Product:
 
 
 def classify_lifecycle(data: dict) -> dict:
-    """Main entry point — tries Gemini, falls back to ML."""
-    if _gemini:
+    """Main entry point — tries Groq Llama 4, falls back to ML."""
+    if _groq:
         try:
-            return _classify_with_gemini(data)
+            return _classify_with_groq(data)
         except Exception as e:
-            print(f"Gemini lifecycle error: {e}")
+            print(f"Groq lifecycle error: {e}")
 
     return _classify_with_ml(data)
 
 
-def _classify_with_gemini(data: dict) -> dict:
-    """Use Gemini 3.1 Flash Lite for intelligent lifecycle decisions."""
+def _classify_with_groq(data: dict) -> dict:
+    """Use Groq (Llama 4 Scout 17B) for intelligent lifecycle decisions."""
     prompt = LIFECYCLE_PROMPT.format(
         product_name=data.get("product_name", "Unknown Product"),
         category=data.get("category", "other"),
@@ -120,12 +119,14 @@ def _classify_with_gemini(data: dict) -> dict:
         days_since_purchase=data.get("days_since_purchase", 0),
     )
 
-    response = _gemini.generate_content(
-        prompt,
-        generation_config=genai.GenerationConfig(temperature=0.1, max_output_tokens=300),
+    response = _groq.chat.completions.create(
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.1,
+        max_tokens=300,
     )
 
-    text = response.text.strip()
+    text = response.choices[0].message.content.strip()
     # Clean markdown fences
     if "```" in text:
         text = text.replace("```json", "").replace("```", "").strip()
@@ -140,16 +141,16 @@ def _classify_with_gemini(data: dict) -> dict:
         action = "refurbish"
 
     # Get confidence from scores
-    confidence = scores.get(ACTION_LABELS[action], 70)
+    confidence = scores.get(ACTION_LABELS.get(action, ""), 70)
 
     return {
         "action": action,
-        "label": ACTION_LABELS[action],
+        "label": ACTION_LABELS.get(action, action),
         "confidence": round(confidence, 1),
         "reasoning": reasoning,
         "all_scores": scores,
         "green_credits_awarded": CREDITS.get(action, 0),
-        "engine": "gemini-3.1-flash-lite",
+        "engine": "groq-llama4-scout",
     }
 
 
