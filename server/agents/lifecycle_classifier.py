@@ -57,9 +57,43 @@ RETURN_REASON_ENCODING = {
 # GEMINI CLASSIFICATION
 # ============================================================
 
-LIFECYCLE_PROMPT = """You are a product lifecycle decision AI. Analyze this returned product and assign probability scores to each possible action.
+LIFECYCLE_PROMPT = """You are a product lifecycle decision AI for a refurbished e-commerce marketplace.
 
-Return ONLY valid JSON (no markdown, no code fences):
+ANALYZE ALL the following factors TOGETHER to decide the best fate for this returned product:
+
+Product Data:
+- Product Name: {product_name}
+- Category: {category}
+- Return Reason: {return_reason}
+- Product Age: {product_age_days} days old
+- Repair Cost Estimate: ₹{repair_cost_estimate}
+- Times Previously Returned: {return_frequency}
+- Seller Reputation: {seller_reputation}/5
+- Accessories Present: {accessories_present}
+- Days Since Purchase: {days_since_purchase}
+
+DECISION MATRIX (consider ALL factors, not just one):
+
+| Scenario | Decision |
+|----------|----------|
+| New product (<30 days), changed mind, no damage | resell_certified |
+| Minor defect, low repair cost (<₹2000), good seller | refurbish |
+| Clothing/shoes + size issue, any age | exchange_marketplace |
+| Old product (>1 year), baby/kids category, functional | donate |
+| High repair cost (>₹3000), old (>2 years), defective | recycle |
+| Very high repair cost (>₹5000), any category | recycle |
+| Low demand product, functional, old | donate |
+| Good condition, moderate age (1-6 months), accessories present | resell_certified |
+| Moderate damage, reasonable repair (<₹2000), popular category | refurbish |
+
+WEIGHTING:
+- Repair cost relative to product value: 25%
+- Product age and condition: 25%
+- Return reason: 20%
+- Category demand and seller reputation: 15%
+- Accessories and return history: 15%
+
+Return ONLY valid JSON (no markdown, no backticks, no explanation outside JSON):
 {{
   "decision": "<resell_certified | refurbish | exchange_marketplace | donate | recycle>",
   "scores": {{
@@ -69,29 +103,13 @@ Return ONLY valid JSON (no markdown, no code fences):
     "Donate to NGO": <0-100>,
     "Recycle": <0-100>
   }},
-  "reasoning": "<one sentence why>"
+  "reasoning": "<one sentence explaining which factors led to this decision>"
 }}
 
-Rules (STRICT):
-- Scores must sum to exactly 100
-- "decision" must be the action with the highest score
-- If repair_cost > ₹3000: scores for "Certified Refurbished" and "Send for Refurbishment" MUST be below 10
-- If repair_cost > ₹5000: "Recycle" score must be highest
-- If product_age < 30 days AND return_reason is "changed_mind": "Certified Refurbished" should score highest
-- If return_reason is "size_issue" AND category is clothing: "Exchange Marketplace" should score highest
-- If product_age > 1000 days AND reason is "defective": "Recycle" or "Donate to NGO" should be highest
-- Baby products older than 1 year: "Donate to NGO" should score high
-
-Product:
-- Name: {product_name}
-- Category: {category}
-- Return reason: {return_reason}
-- Age: {product_age_days} days
-- Repair cost: ₹{repair_cost_estimate}
-- Return frequency: {return_frequency}
-- Seller reputation: {seller_reputation}/5
-- Accessories: {accessories_present}
-- Days since purchase: {days_since_purchase}"""
+CONSTRAINTS:
+- Scores MUST sum to exactly 100
+- "decision" MUST match the highest scoring option
+- Consider ALL 9 input parameters, not just repair cost"""
 
 
 def classify_lifecycle(data: dict) -> dict:
